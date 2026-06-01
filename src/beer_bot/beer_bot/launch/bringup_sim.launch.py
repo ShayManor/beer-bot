@@ -10,6 +10,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory("beer_bot")
 
     system_yaml = os.path.join(pkg_share, "params", "system.yaml")
+    camera_yaml = os.path.join(pkg_share, "params", "camera.yaml")
     safety_yaml = os.path.join(pkg_share, "params", "safety.yaml")
     pathfinder_yaml = os.path.join(pkg_share, "params", "pathfinder.yaml")
     localization_yaml = os.path.join(pkg_share, "params", "localization.yaml")
@@ -24,6 +25,12 @@ def generate_launch_description():
                 [
                     SetParametersFromFile(system_yaml),
                     SetParameter(name="simulation_mode", value=sim_mode),
+                    Node(
+                        package="beer_bot",
+                        executable="camera_node",
+                        name="camera_node",
+                        parameters=[camera_yaml],
+                    ),
                     Node(
                         package="beer_bot",
                         executable="pathfinder_node",

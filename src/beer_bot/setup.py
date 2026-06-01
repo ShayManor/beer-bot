@@ -9,6 +9,7 @@ setup(
     packages=[
         'beer_bot',
         'beer_bot.nodes',
+        'beer_bot.nodes.camera',
         'beer_bot.nodes.pathfinder',
         'beer_bot.nodes.localization',
         'beer_bot.nodes.e_comms',
@@ -28,6 +29,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         'console_scripts': [
+            'camera_node = beer_bot.nodes.camera.camera_node:main',
             'pathfinder_node = beer_bot.nodes.pathfinder.pathfinder_node:main',
             'localization_node = beer_bot.nodes.localization.localization_node:main',
             'e_comms_node = beer_bot.nodes.e_comms.e_comms_node:main',

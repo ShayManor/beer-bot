@@ -66,3 +66,6 @@ dmypy.json
 install
 log
 build
+
+# Agent-facing docs (not committed)
+CLAUDE.md
