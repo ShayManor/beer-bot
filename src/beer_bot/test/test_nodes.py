@@ -8,6 +8,7 @@ import pytest
         ("beer_bot.nodes.pathfinder.pathfinder_node", "PathfinderNode"),
         ("beer_bot.nodes.localization.localization_node", "LocalizationNode"),
         ("beer_bot.nodes.e_comms.e_comms_node", "ECommsNode"),
+        ("beer_bot.nodes.master.master_node", "MasterNode"),
     ],
 )
 def test_node_constructs(ros_ctx, module, cls):

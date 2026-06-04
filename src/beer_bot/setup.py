@@ -13,6 +13,7 @@ setup(
         'beer_bot.nodes.pathfinder',
         'beer_bot.nodes.localization',
         'beer_bot.nodes.e_comms',
+        'beer_bot.nodes.master',
     ],
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
@@ -33,6 +34,7 @@ setup(
             'pathfinder_node = beer_bot.nodes.pathfinder.pathfinder_node:main',
             'localization_node = beer_bot.nodes.localization.localization_node:main',
             'e_comms_node = beer_bot.nodes.e_comms.e_comms_node:main',
+            'master_node = beer_bot.nodes.master.master_node:main',
         ],
     },
 )

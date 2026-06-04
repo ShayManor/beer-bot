@@ -15,6 +15,7 @@ def generate_launch_description():
     pathfinder_yaml = os.path.join(pkg_share, "params", "pathfinder.yaml")
     localization_yaml = os.path.join(pkg_share, "params", "localization.yaml")
     e_comms_yaml = os.path.join(pkg_share, "params", "e_comms.yaml")
+    master_yaml = os.path.join(pkg_share, "params", "master.yaml")
 
     sim_mode = LaunchConfiguration("simulation_mode")
 
@@ -48,6 +49,12 @@ def generate_launch_description():
                         executable="e_comms_node",
                         name="e_comms_node",
                         parameters=[e_comms_yaml],
+                    ),
+                    Node(
+                        package="beer_bot",
+                        executable="master_node",
+                        name="master_node",
+                        parameters=[master_yaml],
                     ),
                 ]
             ),
