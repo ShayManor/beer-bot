@@ -11,7 +11,7 @@ services:
       - ../:/ws
       - ros_cache:/root/.cache
     environment:
-      - ROS_DISTRO=humble
+      - ROS_DISTRO=jazzy
       - ROS_DOMAIN_ID=42
       - ROS_LOCALHOST_ONLY=1
       - CYCLONEDDS_URI=file:///ws/docker/cyclonedds.xml

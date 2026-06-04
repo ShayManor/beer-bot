@@ -19,11 +19,11 @@ jobs:
     name: colcon build + test
     runs-on: ubuntu-24.04
     container:
-      image: ros:humble-ros-base
+      image: ros:jazzy-ros-base
       options: --user root
     env:
       WS: /ws
-      ROS_DISTRO: humble
+      ROS_DISTRO: jazzy
       ROS_DOMAIN_ID: "77"
       ROS_LOCALHOST_ONLY: "1"
       QT_QPA_PLATFORM: offscreen
@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           set -exo pipefail
-          source /opt/ros/humble/setup.bash
+          source /opt/ros/jazzy/setup.bash
           cd /ws
           colcon build --packages-select beer_bot --symlink-install \
             --cmake-args -DBUILD_TESTING=ON
@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -exo pipefail
-          source /opt/ros/humble/setup.bash
+          source /opt/ros/jazzy/setup.bash
           source /ws/install/setup.bash
           cd /ws
           colcon test \

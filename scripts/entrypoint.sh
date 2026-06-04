@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 # Source ROS
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 colcon build
 # Source the workspace if it exists
 if [ -f /ws/install/setup.bash ]; then

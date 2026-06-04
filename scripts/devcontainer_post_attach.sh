@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${ROS_DISTRO:=humble}"
+: "${ROS_DISTRO:=jazzy}"
 grep -qxF "[ -f /ws/.venv/bin/activate ] && source /ws/.venv/bin/activate" ~/.bashrc || \
   echo "[ -f /ws/.venv/bin/activate ] && source /ws/.venv/bin/activate" >> ~/.bashrc
 
