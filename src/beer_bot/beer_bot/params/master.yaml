@@ -1,0 +1,7 @@
+master_node:
+  ros__parameters:
+    host: "0.0.0.0"
+    port: 8080
+    goal_frame_id: "map"
+    log_buffer_size: 200
+    cloud_max_points: 20000
