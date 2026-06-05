@@ -14,7 +14,9 @@ from geometry_msgs.msg import PointStamped, PoseStamped, Twist
 from nav_msgs.msg import Path
 from sensor_msgs.msg import PointCloud2
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
+
+from beer_bot.nodes.master.web import INDEX_HTML
 
 # PointField datatype -> struct format char.
 _PF_FMT = {1: "b", 2: "B", 3: "h", 4: "H", 5: "i", 6: "I", 7: "f", 8: "d"}
@@ -70,6 +72,8 @@ class MasterNode(Node):
         self.port = int(self._param("port", 8080))
         self.goal_frame_id = str(self._param("goal_frame_id", "map"))
         self.cloud_max_points = int(self._param("cloud_max_points", 20000))
+        self.teleop_linear = float(self._param("teleop_linear", 0.35))
+        self.teleop_angular = float(self._param("teleop_angular", 1.0))
         log_size = int(self._param("log_buffer_size", 200))
 
         self._lock = threading.Lock()
@@ -85,6 +89,7 @@ class MasterNode(Node):
         latched.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self._state_pub = self.create_publisher(String, "/robot_state", latched)
         self._goal_pub = self.create_publisher(PointStamped, "/goal_point", 10)
+        self._cmd_pub = self.create_publisher(Twist, "/cmd_vel", 10)
 
         self.create_subscription(PoseStamped, "/pose", self._on_pose, 10)
         self.create_subscription(Path, "/plan", self._on_path, 10)
@@ -157,6 +162,13 @@ class MasterNode(Node):
         self._log_event(f"goal -> ({float(x)}, {float(y)}) [{frame}], state -> active")
         return goal
 
+    def teleop(self, v, omega):
+        """Publish a manual velocity command (operator joystick / arrow keys)."""
+        msg = Twist()
+        msg.linear.x = float(v)
+        msg.angular.z = float(omega)
+        self._cmd_pub.publish(msg)
+
     # --- telemetry --------------------------------------------------------
     def snapshot(self):
         with self._lock:
@@ -185,6 +197,13 @@ class MasterNode(Node):
     # --- HTTP -------------------------------------------------------------
     def _build_app(self):
         app = Flask("beer_bot_master")
+        page = INDEX_HTML.replace("__TELEOP_V__", repr(self.teleop_linear)).replace(
+            "__TELEOP_W__", repr(self.teleop_angular)
+        )
+
+        @app.route("/", methods=["GET"])
+        def index():
+            return Response(page, mimetype="text/html")
 
         @app.route("/health", methods=["GET"])
         def health():
@@ -222,6 +241,17 @@ class MasterNode(Node):
                 return jsonify({"error": "body must include numeric 'x' and 'y'"}), 400
             goal = self.set_goal(x, y, body.get("frame_id"))
             return jsonify({"accepted": goal, "state": "active"})
+
+        @app.route("/teleop", methods=["POST"])
+        def post_teleop():
+            body = request.get_json(silent=True) or {}
+            try:
+                v = float(body.get("v", 0.0))
+                omega = float(body.get("omega", 0.0))
+            except (TypeError, ValueError):
+                return jsonify({"error": "v and omega must be numeric"}), 400
+            self.teleop(v, omega)
+            return jsonify({"v": v, "omega": omega})
 
         return app
 

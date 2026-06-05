@@ -5,3 +5,5 @@ master_node:
     goal_frame_id: "map"
     log_buffer_size: 200
     cloud_max_points: 20000
+    teleop_linear: 0.35
+    teleop_angular: 1.0

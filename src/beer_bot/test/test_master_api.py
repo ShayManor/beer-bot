@@ -17,6 +17,29 @@ def test_health(ros_ctx):
         node.destroy_node()
 
 
+def test_index_page(ros_ctx):
+    with ros_ctx():
+        node, client = _client(ros_ctx)
+        r = client.get("/")
+        assert r.status_code == 200
+        assert "text/html" in r.content_type
+        html = r.get_data(as_text=True)
+        assert "BEER" in html
+        # teleop magnitudes are substituted into the page
+        assert "__TELEOP_V__" not in html and "__TELEOP_W__" not in html
+        node.destroy_node()
+
+
+def test_teleop(ros_ctx):
+    with ros_ctx():
+        node, client = _client(ros_ctx)
+        assert client.post("/teleop", json={"v": "x"}).status_code == 400
+        r = client.post("/teleop", json={"v": 0.3, "omega": -0.5})
+        assert r.status_code == 200
+        assert r.get_json() == {"v": 0.3, "omega": -0.5}
+        node.destroy_node()
+
+
 def test_state_validation_and_set(ros_ctx):
     with ros_ctx():
         node, client = _client(ros_ctx)
