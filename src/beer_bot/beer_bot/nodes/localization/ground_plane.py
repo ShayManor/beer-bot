@@ -35,7 +35,7 @@ def fit_plane(points, threshold=0.02, iterations=200, min_inliers=50, seed=0):
     # Least-squares refit on the inlier set (centroid + smallest singular vector).
     pts = points[best_inliers]
     centroid = pts.mean(axis=0)
-    _, _, vt = np.linalg.svd(pts - centroid)
+    _, _, vt = np.linalg.svd(pts - centroid, full_matrices=False)
     normal = vt[-1]
     normal = normal / np.linalg.norm(normal)
     d = -normal.dot(centroid)

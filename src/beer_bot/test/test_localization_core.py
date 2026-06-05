@@ -56,6 +56,17 @@ def test_ground_scale_returns_none_on_degenerate_input():
     assert ground_scale(np.zeros((2, 3)), camera_height=0.1524) is None
 
 
+def test_ground_scale_handles_full_resolution_cloud():
+    # ~150k points (a 640x480 floor) must use the economy SVD; the full SVD
+    # would try to allocate an N x N matrix (~170 GiB) and crash.
+    from beer_bot.nodes.localization.ground_plane import ground_scale
+
+    pts = _synth_plane(distance=0.1524, n_pts=150_000, noise=0.002)
+    fit = ground_scale(pts, camera_height=0.1524)
+    assert fit is not None
+    assert fit.distance == pytest.approx(0.1524, rel=1e-2)
+
+
 def _test_K(w=160, h=120, f=120.0):
     return np.array([[f, 0.0, w / 2.0], [0.0, f, h / 2.0], [0.0, 0.0, 1.0]])
 
