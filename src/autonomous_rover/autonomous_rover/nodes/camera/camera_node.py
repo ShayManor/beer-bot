@@ -6,7 +6,7 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import CameraInfo, Image
 
-from beer_bot.nodes.camera.calibration import load_camera_info
+from autonomous_rover.nodes.camera.calibration import load_camera_info
 
 try:
     from cv_bridge import CvBridge
@@ -36,6 +36,7 @@ class CameraNode(Node):
         self.frame_id = str(self._param("frame_id", "camera_optical_frame"))
         self.source = str(self._param("source", "synthetic"))
         self.device_index = int(self._param("device_index", 0))
+        self.device_path = str(self._param("device_path", ""))
         self.video_path = str(self._param("video_path", ""))
         fov_deg = float(self._param("fov_deg", 70.0))
         calib_file = str(self._param("calibration_file", ""))
@@ -56,7 +57,10 @@ class CameraNode(Node):
 
     def _open_source(self):
         if self.source in ("webcam", "video") and cv2 is not None:
-            target = self.device_index if self.source == "webcam" else self.video_path
+            if self.source == "webcam":
+                target = self.device_path or self.device_index
+            else:
+                target = self.video_path
             cap = cv2.VideoCapture(target)
             if self.source == "webcam":
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)

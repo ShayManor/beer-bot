@@ -58,6 +58,9 @@ class ECommsNode(Node):
         self.wheel_cmd_per_mps = float(self._param("wheel_cmd_per_mps", 0.4))
         self.wheel_cmd_per_radps = float(self._param("wheel_cmd_per_radps", 0.2))
         self.max_wheel_cmd = float(self._param("max_wheel_cmd", 0.49))
+        # Open-loop deadband: lift any nonzero wheel command to this floor so the
+        # inner wheel clears motor breakaway in a turn instead of stalling.
+        self.min_wheel_cmd = float(self._param("min_wheel_cmd", 0.18))
         self.imu_rate = float(self._param("imu_rate", 50.0))
         self.cmd_timeout = float(self._param("cmd_timeout", 0.5))
 
@@ -118,11 +121,21 @@ class ECommsNode(Node):
             right *= max_cmd / peak
         return left, right
 
+    @staticmethod
+    def apply_deadband(cmd, min_cmd):
+        """Lift a nonzero wheel command up to min_cmd so the motor clears its
+        open-loop breakaway instead of stalling; 0 stays 0, sign preserved."""
+        if min_cmd > 0.0 and 0.0 < abs(cmd) < min_cmd:
+            return math.copysign(min_cmd, cmd)
+        return cmd
+
     def _on_cmd_vel(self, msg):
         self._last_cmd_time = time.monotonic()
         left, right = self.mix(
             msg.linear.x * -1, msg.angular.z, self.wheel_cmd_per_mps, self.wheel_cmd_per_radps, self.max_wheel_cmd
         )
+        left = self.apply_deadband(left, self.min_wheel_cmd)
+        right = self.apply_deadband(right, self.min_wheel_cmd)
         self._send({"T": CMD_SPEED_CTRL, "L": left, "R": right})
 
     def _watchdog(self):

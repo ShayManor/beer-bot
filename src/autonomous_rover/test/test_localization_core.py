@@ -3,7 +3,7 @@ import pytest
 
 
 def test_backproject_principal_and_offset_pixels():
-    from beer_bot.nodes.localization.projection import backproject
+    from autonomous_rover.nodes.localization.projection import backproject
 
     K = np.array([[100.0, 0.0, 2.0], [0.0, 100.0, 1.0], [0.0, 0.0, 1.0]])
     depth = np.full((3, 5), 2.0)
@@ -17,7 +17,7 @@ def test_backproject_principal_and_offset_pixels():
 
 
 def test_backproject_invalid_depth_is_nan_and_dropped():
-    from beer_bot.nodes.localization.projection import backproject, valid_points
+    from autonomous_rover.nodes.localization.projection import backproject, valid_points
 
     K = np.array([[100.0, 0.0, 2.0], [0.0, 100.0, 1.0], [0.0, 0.0, 1.0]])
     depth = np.full((2, 2), 1.0)
@@ -39,7 +39,7 @@ def _synth_plane(distance, n_pts=800, noise=0.0, seed=0):
 
 
 def test_ground_scale_recovers_known_distance_and_scale():
-    from beer_bot.nodes.localization.ground_plane import ground_scale
+    from autonomous_rover.nodes.localization.ground_plane import ground_scale
 
     pts = _synth_plane(distance=0.40, noise=0.002)
     fit = ground_scale(pts, camera_height=0.1524)
@@ -51,7 +51,7 @@ def test_ground_scale_recovers_known_distance_and_scale():
 
 
 def test_ground_scale_returns_none_on_degenerate_input():
-    from beer_bot.nodes.localization.ground_plane import ground_scale
+    from autonomous_rover.nodes.localization.ground_plane import ground_scale
 
     assert ground_scale(np.zeros((2, 3)), camera_height=0.1524) is None
 
@@ -59,7 +59,7 @@ def test_ground_scale_returns_none_on_degenerate_input():
 def test_ground_scale_handles_full_resolution_cloud():
     # ~150k points (a 640x480 floor) must use the economy SVD; the full SVD
     # would try to allocate an N x N matrix (~170 GiB) and crash.
-    from beer_bot.nodes.localization.ground_plane import ground_scale
+    from autonomous_rover.nodes.localization.ground_plane import ground_scale
 
     pts = _synth_plane(distance=0.1524, n_pts=150_000, noise=0.002)
     fit = ground_scale(pts, camera_height=0.1524)
@@ -72,9 +72,9 @@ def _test_K(w=160, h=120, f=120.0):
 
 
 def test_stub_depth_is_a_floor_at_camera_height():
-    from beer_bot.nodes.localization.depth import StubDepthEstimator
-    from beer_bot.nodes.localization.projection import backproject, valid_points
-    from beer_bot.nodes.localization.ground_plane import ground_scale
+    from autonomous_rover.nodes.localization.depth import StubDepthEstimator
+    from autonomous_rover.nodes.localization.projection import backproject, valid_points
+    from autonomous_rover.nodes.localization.ground_plane import ground_scale
 
     K = _test_K()
     height = 0.1524
@@ -91,9 +91,9 @@ def test_stub_depth_is_a_floor_at_camera_height():
 
 
 def test_stub_depth_scale_is_pitch_invariant():
-    from beer_bot.nodes.localization.depth import StubDepthEstimator
-    from beer_bot.nodes.localization.projection import backproject, valid_points
-    from beer_bot.nodes.localization.ground_plane import ground_scale
+    from autonomous_rover.nodes.localization.depth import StubDepthEstimator
+    from autonomous_rover.nodes.localization.projection import backproject, valid_points
+    from autonomous_rover.nodes.localization.ground_plane import ground_scale
 
     K = _test_K()
     height = 0.1524
@@ -105,10 +105,10 @@ def test_stub_depth_scale_is_pitch_invariant():
 
 
 def test_height_inches_zero_on_floor_positive_above():
-    from beer_bot.nodes.localization.depth import StubDepthEstimator
-    from beer_bot.nodes.localization.projection import backproject
-    from beer_bot.nodes.localization.ground_plane import ground_scale
-    from beer_bot.nodes.localization.overlay import height_inches
+    from autonomous_rover.nodes.localization.depth import StubDepthEstimator
+    from autonomous_rover.nodes.localization.projection import backproject
+    from autonomous_rover.nodes.localization.ground_plane import ground_scale
+    from autonomous_rover.nodes.localization.overlay import height_inches
 
     K = _test_K()
     height = 0.1524
@@ -116,7 +116,7 @@ def test_height_inches_zero_on_floor_positive_above():
         np.zeros((120, 160, 3), dtype=np.uint8)
     )
     xyz = backproject(depth, K)
-    from beer_bot.nodes.localization.projection import valid_points
+    from autonomous_rover.nodes.localization.projection import valid_points
     fit = ground_scale(valid_points(xyz), camera_height=height)
 
     h_floor = height_inches(xyz, fit.normal, fit.offset)

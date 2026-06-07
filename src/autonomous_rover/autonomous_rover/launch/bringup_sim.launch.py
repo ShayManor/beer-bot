@@ -7,7 +7,7 @@ import os
 
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory("beer_bot")
+    pkg_share = get_package_share_directory("autonomous_rover")
 
     system_yaml = os.path.join(pkg_share, "params", "system.yaml")
     camera_yaml = os.path.join(pkg_share, "params", "camera.yaml")
@@ -21,25 +21,25 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("simulation_mode", default_value="false"),
+            DeclareLaunchArgument("simulation_mode", default_value="true"),
             GroupAction(
                 [
                     SetParametersFromFile(system_yaml),
                     SetParameter(name="simulation_mode", value=sim_mode),
                     Node(
-                        package="beer_bot",
+                        package="autonomous_rover",
                         executable="camera_node",
                         name="camera_node",
                         parameters=[camera_yaml],
                     ),
                     Node(
-                        package="beer_bot",
+                        package="autonomous_rover",
                         executable="pathfinder_node",
                         name="pathfinder_node",
                         parameters=[pathfinder_yaml, safety_yaml],
                     ),
                     Node(
-                        package="beer_bot",
+                        package="autonomous_rover",
                         executable="localization_node",
                         name="localization_node",
                         parameters=[localization_yaml],
@@ -83,13 +83,13 @@ def generate_launch_description():
                         arguments=["--delete_db_on_start"],
                     ),
                     Node(
-                        package="beer_bot",
+                        package="autonomous_rover",
                         executable="e_comms_node",
                         name="e_comms_node",
                         parameters=[e_comms_yaml],
                     ),
                     Node(
-                        package="beer_bot",
+                        package="autonomous_rover",
                         executable="master_node",
                         name="master_node",
                         parameters=[master_yaml],

@@ -4,7 +4,7 @@ import pytest
 
 
 def test_mix_straight_and_turn():
-    from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
+    from autonomous_rover.nodes.e_comms.e_comms_node import ECommsNode
 
     # Straight ahead: both wheels equal.
     left, right = ECommsNode.mix(0.4, 0.0, lin_scale=1.0, ang_scale=0.1, max_cmd=0.5)
@@ -18,7 +18,7 @@ def test_mix_straight_and_turn():
 
 
 def test_mix_clamps_to_max():
-    from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
+    from autonomous_rover.nodes.e_comms.e_comms_node import ECommsNode
 
     left, right = ECommsNode.mix(10.0, 0.0, lin_scale=1.0, ang_scale=0.1, max_cmd=0.5)
     assert left == 0.5 and right == 0.5
@@ -27,7 +27,7 @@ def test_mix_clamps_to_max():
 
 
 def test_mix_preserves_turn_when_saturated():
-    from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
+    from autonomous_rover.nodes.e_comms.e_comms_node import ECommsNode
 
     # Full forward + turn: the outer wheel would exceed max, but both scale down
     # together so a real differential remains instead of clipping flat (no turn).
@@ -36,10 +36,21 @@ def test_mix_preserves_turn_when_saturated():
     assert abs(right - left) > 0.1           # turn differential survives
 
 
+def test_deadband_lifts_stalling_commands():
+    from autonomous_rover.nodes.e_comms.e_comms_node import ECommsNode
+
+    # A low inner-wheel command (would stall) is lifted to the breakaway floor.
+    assert ECommsNode.apply_deadband(0.05, 0.18) == pytest.approx(0.18)
+    assert ECommsNode.apply_deadband(-0.05, 0.18) == pytest.approx(-0.18)  # sign kept
+    assert ECommsNode.apply_deadband(0.0, 0.18) == 0.0                     # stop stays stop
+    assert ECommsNode.apply_deadband(0.4, 0.18) == pytest.approx(0.4)      # normal unchanged
+    assert ECommsNode.apply_deadband(0.05, 0.0) == pytest.approx(0.05)     # disabled passthrough
+
+
 def test_publishes_imu_in_si_units(ros_ctx, spin_helper):
     rclpy = pytest.importorskip("rclpy")
     from sensor_msgs.msg import Imu
-    from beer_bot.nodes.e_comms.e_comms_node import ECommsNode, MG_TO_MS2, DPS_TO_RADS
+    from autonomous_rover.nodes.e_comms.e_comms_node import ECommsNode, MG_TO_MS2, DPS_TO_RADS
 
     with ros_ctx({"e_comms_node.imu_rate": 0.0}):
         node = ECommsNode()

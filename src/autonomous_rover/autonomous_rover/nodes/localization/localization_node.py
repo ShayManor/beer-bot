@@ -10,10 +10,10 @@ from sensor_msgs.msg import CameraInfo, CompressedImage, Image
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 
-from beer_bot.nodes.localization.depth import StubDepthEstimator
-from beer_bot.nodes.localization.projection import backproject, valid_points
-from beer_bot.nodes.localization.ground_plane import ground_scale
-from beer_bot.nodes.localization import overlay
+from autonomous_rover.nodes.localization.depth import StubDepthEstimator
+from autonomous_rover.nodes.localization.projection import backproject, valid_points
+from autonomous_rover.nodes.localization.ground_plane import ground_scale
+from autonomous_rover.nodes.localization import overlay
 
 try:
     from cv_bridge import CvBridge

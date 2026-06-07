@@ -3,7 +3,7 @@ import pytest
 
 
 def test_default_K_focal_from_fov():
-    from beer_bot.nodes.camera.calibration import default_K
+    from autonomous_rover.nodes.camera.calibration import default_K
 
     K, D = default_K(width=640, height=480, fov_deg=90.0)
     # fov 90 -> f = (w/2) / tan(45) = 320
@@ -14,7 +14,7 @@ def test_default_K_focal_from_fov():
 
 
 def test_calibration_save_load_roundtrip(tmp_path):
-    from beer_bot.nodes.camera.calibration import save_calibration, load_camera_info
+    from autonomous_rover.nodes.camera.calibration import save_calibration, load_camera_info
 
     K = np.array([[500.0, 0.0, 320.0], [0.0, 500.0, 240.0], [0.0, 0.0, 1.0]])
     D = np.array([0.1, -0.2, 0.0, 0.0, 0.05])
@@ -27,7 +27,7 @@ def test_calibration_save_load_roundtrip(tmp_path):
 
 
 def test_load_camera_info_falls_back_to_default(tmp_path):
-    from beer_bot.nodes.camera.calibration import load_camera_info, default_K
+    from autonomous_rover.nodes.camera.calibration import load_camera_info, default_K
 
     K, D = load_camera_info(str(tmp_path / "missing.yaml"), width=640, height=480, fov_deg=90.0)
     Kd, _ = default_K(640, 480, 90.0)
@@ -37,11 +37,11 @@ def test_load_camera_info_falls_back_to_default(tmp_path):
 def test_camera_node_constructs_and_publishes_info(ros_ctx, spin_helper):
     rclpy = pytest.importorskip("rclpy")
     from sensor_msgs.msg import CameraInfo
-    from beer_bot.nodes.camera.camera_node import CameraNode
+    from autonomous_rover.nodes.camera.camera_node import CameraNode
 
-    with ros_ctx({"camera_node.source": "synthetic",
-                  "camera_node.width": 64, "camera_node.height": 48,
-                  "camera_node.fps": 30.0}):
+    with ros_ctx({"source": "synthetic",
+                  "width": 64, "height": 48,
+                  "fps": 30.0}):
         node = CameraNode()
         received = []
         node.create_subscription(CameraInfo, "/camera/camera_info", received.append, 10)

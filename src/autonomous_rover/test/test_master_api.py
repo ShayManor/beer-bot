@@ -4,7 +4,7 @@ pytest.importorskip("flask")
 
 
 def _client(ros_ctx):
-    from beer_bot.nodes.master.master_node import MasterNode
+    from autonomous_rover.nodes.master.master_node import MasterNode
 
     node = MasterNode()
     return node, node.app.test_client()

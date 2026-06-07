@@ -5,15 +5,15 @@ sets are collected, then writes K + distortion to a calibration YAML that
 camera_node loads.
 
 Usage:
-  python3 -m beer_bot.nodes.camera.calibrate_camera \\
-      --output src/beer_bot/beer_bot/params/camera_calib.yaml \\
+  python3 -m autonomous_rover.nodes.camera.calibrate_camera \\
+      --output src/autonomous_rover/autonomous_rover/params/camera_calib.yaml \\
       --rows 6 --cols 9 --square 0.025 --device 0 --views 15
 """
 import argparse
 
 import numpy as np
 
-from beer_bot.nodes.camera.calibration import save_calibration
+from autonomous_rover.nodes.camera.calibration import save_calibration
 
 
 def calibrate(object_points, image_points, image_size):

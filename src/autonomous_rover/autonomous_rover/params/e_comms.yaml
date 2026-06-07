@@ -14,3 +14,4 @@ e_comms_node:
     wheel_cmd_per_mps: 0.4        # duty per m/s: full duty 0.5 / top speed 1.25
     wheel_cmd_per_radps: 0.2      # per-wheel duty differential per rad/s of turn
     max_wheel_cmd: 0.49          # ~100% PWM; L*512 just under the 8-bit cap (255)
+    min_wheel_cmd: 0.18          # deadband floor; lift moving wheel past breakaway (~92 PWM)

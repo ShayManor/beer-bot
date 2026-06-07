@@ -1,0 +1,14 @@
+camera_node:
+  ros__parameters:
+    source: "webcam"           # webcam | video | synthetic
+    device_index: 0            # /dev/video0 (C930e capture node; video1 is UVC metadata)
+    device_path: "/dev/v4l/by-id/usb-046d_Logitech_Webcam_C930e_B1DB27FE-video-index0"
+    video_path: ""
+    width: 848                 # 16:9, largest YUYV mode that holds 30 fps on the C930e
+    height: 480
+    fps: 30.0
+    fov_deg: 82.1              # C930e horizontal FOV at 16:9 (90 deg diagonal)
+    frame_id: "camera_optical_frame"
+    calibration_file: ""       # path to chessboard output; empty -> FOV default
+    rgb_topic: "/camera/image_raw"
+    camera_info_topic: "/camera/camera_info"

@@ -16,7 +16,7 @@ from sensor_msgs.msg import PointCloud2, CompressedImage
 
 from flask import Flask, Response, jsonify, request
 
-from beer_bot.nodes.master.web import INDEX_HTML
+from autonomous_rover.nodes.master.web import INDEX_HTML
 
 # PointField datatype -> struct format char.
 _PF_FMT = {1: "b", 2: "B", 3: "h", 4: "H", 5: "i", 6: "I", 7: "f", 8: "d"}
@@ -204,7 +204,7 @@ class MasterNode(Node):
 
     # --- HTTP -------------------------------------------------------------
     def _build_app(self):
-        app = Flask("beer_bot_master")
+        app = Flask("autonomous_rover_master")
         page = INDEX_HTML.replace("__TELEOP_V__", repr(self.teleop_linear)).replace(
             "__TELEOP_W__", repr(self.teleop_angular)
         )

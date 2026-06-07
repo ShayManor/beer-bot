@@ -5,7 +5,7 @@ def test_localization_odom_republished_as_pose(ros_ctx, spin_helper):
     rclpy = pytest.importorskip("rclpy")
     from nav_msgs.msg import Odometry
     from geometry_msgs.msg import PoseStamped
-    from beer_bot.nodes.localization.localization_node import LocalizationNode
+    from autonomous_rover.nodes.localization.localization_node import LocalizationNode
 
     with ros_ctx():
         node = LocalizationNode()

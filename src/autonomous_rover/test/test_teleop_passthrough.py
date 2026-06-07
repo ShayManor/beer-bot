@@ -48,8 +48,8 @@ class _FakeSerial:
 def test_teleop_passes_through_to_wheel_json(ros_ctx, spin_helper):
     rclpy = pytest.importorskip("rclpy")
     pytest.importorskip("flask")
-    from beer_bot.nodes.master.master_node import MasterNode
-    from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
+    from autonomous_rover.nodes.master.master_node import MasterNode
+    from autonomous_rover.nodes.e_comms.e_comms_node import ECommsNode
 
     # imu_rate 0 keeps the serial line quiet except for drive frames.
     with ros_ctx({"e_comms_node.imu_rate": 0.0}):
@@ -64,13 +64,15 @@ def test_teleop_passes_through_to_wheel_json(ros_ctx, spin_helper):
 
         client = master.app.test_client()
 
-        # Arrow Up: forward. v=0.4, omega=0 -> both wheels +0.4*wheel_cmd_per_mps.
-        assert client.post("/teleop", json={"v": 0.4, "omega": 0.0}).status_code == 200
+        # Arrow Up: forward. v=0.6 (kept above the deadband floor so scaling is
+        # tested cleanly), omega=0 -> both wheels -0.6*wheel_cmd_per_mps
+        # (board duty is inverted from linear.x; positive duty drives backward).
+        assert client.post("/teleop", json={"v": 0.6, "omega": 0.0}).status_code == 200
         assert spin_helper(executor, lambda: any(
             f["L"] != 0.0 for f in fake.drive_frames()
         ))
         fwd = next(f for f in fake.drive_frames() if f["L"] != 0.0)
-        expected = 0.4 * ecomms.wheel_cmd_per_mps
+        expected = -0.6 * ecomms.wheel_cmd_per_mps
         assert fwd["L"] == pytest.approx(expected)
         assert fwd["R"] == pytest.approx(expected)
 
