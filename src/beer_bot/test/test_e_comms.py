@@ -7,12 +7,12 @@ def test_mix_straight_and_turn():
     from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
 
     # Straight ahead: both wheels equal.
-    left, right = ECommsNode.mix(0.4, 0.0, track_width=0.135, scale=1.0, max_cmd=0.5)
+    left, right = ECommsNode.mix(0.4, 0.0, lin_scale=1.0, ang_scale=0.1, max_cmd=0.5)
     assert left == pytest.approx(0.4)
     assert right == pytest.approx(0.4)
 
     # Spin in place: wheels opposite, symmetric.
-    left, right = ECommsNode.mix(0.0, 1.0, track_width=0.2, scale=1.0, max_cmd=0.5)
+    left, right = ECommsNode.mix(0.0, 1.0, lin_scale=1.0, ang_scale=0.1, max_cmd=0.5)
     assert left == pytest.approx(-0.1)
     assert right == pytest.approx(0.1)
 
@@ -20,10 +20,20 @@ def test_mix_straight_and_turn():
 def test_mix_clamps_to_max():
     from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
 
-    left, right = ECommsNode.mix(10.0, 0.0, track_width=0.135, scale=1.0, max_cmd=0.5)
+    left, right = ECommsNode.mix(10.0, 0.0, lin_scale=1.0, ang_scale=0.1, max_cmd=0.5)
     assert left == 0.5 and right == 0.5
-    left, right = ECommsNode.mix(-10.0, 0.0, track_width=0.135, scale=1.0, max_cmd=0.5)
+    left, right = ECommsNode.mix(-10.0, 0.0, lin_scale=1.0, ang_scale=0.1, max_cmd=0.5)
     assert left == -0.5 and right == -0.5
+
+
+def test_mix_preserves_turn_when_saturated():
+    from beer_bot.nodes.e_comms.e_comms_node import ECommsNode
+
+    # Full forward + turn: the outer wheel would exceed max, but both scale down
+    # together so a real differential remains instead of clipping flat (no turn).
+    left, right = ECommsNode.mix(1.25, 1.0, lin_scale=0.4, ang_scale=0.2, max_cmd=0.49)
+    assert right == pytest.approx(0.49)      # outer wheel pinned at the limit
+    assert abs(right - left) > 0.1           # turn differential survives
 
 
 def test_publishes_imu_in_si_units(ros_ctx, spin_helper):

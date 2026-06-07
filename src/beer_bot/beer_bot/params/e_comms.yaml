@@ -11,6 +11,6 @@ e_comms_node:
     # Skid-steer feedforward (calibrate in phase 1: command -> measured velocity).
     # L/R are open-loop motor duty for the encoder-less rover: firmware sets
     # PWM = L*512 on an 8-bit channel, so L in [-0.49, 0.49] spans full throttle.
-    track_width: 0.125            # m; 168mm body - 42.5mm tire (matches RaspRover)
-    wheel_cmd_per_mps: 0.4        # duty L per m/s: full duty 0.5 / top speed 1.25
+    wheel_cmd_per_mps: 0.4        # duty per m/s: full duty 0.5 / top speed 1.25
+    wheel_cmd_per_radps: 0.2      # per-wheel duty differential per rad/s of turn
     max_wheel_cmd: 0.49          # ~100% PWM; L*512 just under the 8-bit cap (255)

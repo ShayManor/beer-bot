@@ -53,10 +53,10 @@ class ECommsNode(Node):
         self.serial_port = self._param("serial_port", "/dev/ttyUSB0")
         self.baud_rate = int(self._param("baud_rate", 115200))
         self.frame_id = self._param("imu_frame_id", "imu_link")
-        # Skid-steer feedforward: per-wheel speed = v +/- omega * track/2, then
-        # scaled into the board's command units and clamped. Calibrate in phase 1.
-        self.track_width = float(self._param("track_width", 0.125))
+        # Skid-steer feedforward: left/right duty = v*lin +/- omega*ang, scaled
+        # down together if either exceeds the clamp. Calibrate gains in phase 1.
         self.wheel_cmd_per_mps = float(self._param("wheel_cmd_per_mps", 0.4))
+        self.wheel_cmd_per_radps = float(self._param("wheel_cmd_per_radps", 0.2))
         self.max_wheel_cmd = float(self._param("max_wheel_cmd", 0.49))
         self.imu_rate = float(self._param("imu_rate", 50.0))
         self.cmd_timeout = float(self._param("cmd_timeout", 0.5))
@@ -106,12 +106,12 @@ class ECommsNode(Node):
 
     # -- drive ------------------------------------------------------------
     @staticmethod
-    def mix(v, omega, track_width, scale, max_cmd):
-        """(v, omega) -> (left, right) board command. If either wheel exceeds
-        max_cmd, scale both down together so the turn differential survives."""
-        half = 0.5 * track_width * omega
-        left = (v - half) * scale
-        right = (v + half) * scale
+    def mix(v, omega, lin_scale, ang_scale, max_cmd):
+        """(v, omega) -> (left, right) board duty. lin_scale maps m/s, ang_scale
+        maps rad/s to a per-wheel differential. If either wheel exceeds max_cmd,
+        scale both down together so the turn survives instead of clipping flat."""
+        left = v * lin_scale - omega * ang_scale
+        right = v * lin_scale + omega * ang_scale
         peak = max(abs(left), abs(right))
         if peak > max_cmd:
             left *= max_cmd / peak
@@ -121,7 +121,7 @@ class ECommsNode(Node):
     def _on_cmd_vel(self, msg):
         self._last_cmd_time = time.monotonic()
         left, right = self.mix(
-            msg.linear.x * -1, msg.angular.z, self.track_width, self.wheel_cmd_per_mps, self.max_wheel_cmd
+            msg.linear.x * -1, msg.angular.z, self.wheel_cmd_per_mps, self.wheel_cmd_per_radps, self.max_wheel_cmd
         )
         self._send({"T": CMD_SPEED_CTRL, "L": left, "R": right})
 
