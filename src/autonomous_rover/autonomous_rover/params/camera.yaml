@@ -12,3 +12,5 @@ camera_node:
     calibration_file: ""       # path to chessboard output; empty -> FOV default
     rgb_topic: "/camera/image_raw"
     camera_info_topic: "/camera/camera_info"
+    preview_every_n: 50        # JPEG preview to the console every Nth frame (0 disables)
+    preview_topic: "/camera/preview/compressed"

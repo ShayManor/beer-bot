@@ -1,6 +1,6 @@
 localization_node:
   ros__parameters:
-    camera_height_m: 0.1524      # 6 inches, fixed camera mount height
+    camera_height_m: 0.1905      # 7.5 inches, fixed camera mount height
     camera_pitch_rad: 0.0
     depth_estimator: "stub"
     ransac_threshold: 0.02

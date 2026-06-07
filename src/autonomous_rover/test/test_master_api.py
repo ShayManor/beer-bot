@@ -101,3 +101,22 @@ def test_debug_image_endpoint(ros_ctx):
         assert r.content_type == "image/jpeg"
         assert r.get_data() == b"\xff\xd8\xff\xd9"
         node.destroy_node()
+
+
+def test_camera_image_endpoint(ros_ctx):
+    from sensor_msgs.msg import CompressedImage
+
+    with ros_ctx():
+        node, client = _client(ros_ctx)
+        # No frame yet -> 503.
+        assert client.get("/camera_image").status_code == 503
+        # Inject a frame the way the subscription would.
+        msg = CompressedImage()
+        msg.format = "jpeg"
+        msg.data = b"\xff\xd8\xff\xd9"  # minimal JPEG-ish bytes
+        node._on_camera_image(msg)
+        r = client.get("/camera_image")
+        assert r.status_code == 200
+        assert r.content_type == "image/jpeg"
+        assert r.get_data() == b"\xff\xd8\xff\xd9"
+        node.destroy_node()

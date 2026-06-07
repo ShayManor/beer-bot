@@ -50,3 +50,23 @@ def test_camera_node_constructs_and_publishes_info(ros_ctx, spin_helper):
         assert spin_helper(ex, lambda: len(received) > 0, timeout=3.0)
         assert received[0].width == 64 and received[0].height == 48
         node.destroy_node()
+
+
+def test_camera_node_publishes_preview(ros_ctx, spin_helper):
+    rclpy = pytest.importorskip("rclpy")
+    pytest.importorskip("cv2")
+    pytest.importorskip("cv_bridge")
+    from sensor_msgs.msg import CompressedImage
+    from autonomous_rover.nodes.camera.camera_node import CameraNode
+
+    with ros_ctx({"source": "synthetic", "width": 64, "height": 48,
+                  "fps": 30.0, "preview_every_n": 1}):
+        node = CameraNode()
+        received = []
+        node.create_subscription(CompressedImage, "/camera/preview/compressed", received.append, 1)
+        ex = rclpy.executors.SingleThreadedExecutor()
+        ex.add_node(node)
+        assert spin_helper(ex, lambda: len(received) > 0, timeout=3.0)
+        assert received[0].format == "jpeg"
+        assert len(received[0].data) > 0
+        node.destroy_node()

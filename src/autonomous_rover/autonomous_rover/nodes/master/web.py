@@ -73,10 +73,10 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
 
 /* ---------- layout ---------- */
 .grid{display:grid; gap:var(--gap); grid-template-columns:1fr;
-  grid-template-areas:"drive" "state" "tele" "log";}
+  grid-template-areas:"cam" "drive" "state" "tele" "log";}
 @media(min-width:760px){
   .grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
-    grid-template-areas:"drive state" "drive tele" "log log";}
+    grid-template-areas:"cam cam" "drive state" "drive tele" "log log";}
 }
 .card{position:relative; background:linear-gradient(180deg,var(--panel),var(--panel-2));
   border:1px solid var(--line); border-radius:var(--radius); padding:16px;
@@ -85,7 +85,11 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
 .card:nth-child(1){animation-delay:.04s}.card:nth-child(2){animation-delay:.1s}
 .card:nth-child(3){animation-delay:.16s}.card:nth-child(4){animation-delay:.22s}
 @keyframes rise{to{opacity:1; transform:none}}
-.drive{grid-area:drive}.state{grid-area:state}.tele{grid-area:tele}.log{grid-area:log}
+.drive{grid-area:drive}.state{grid-area:state}.tele{grid-area:tele}.log{grid-area:log}.cam{grid-area:cam}
+.cam img{display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px;
+  border:1px solid var(--line); background:#080c0f}
+.cam img.off{display:none}
+.camhint{font-size:11px; color:var(--ink-faint); text-align:center; letter-spacing:.03em; padding:24px 0}
 .card h2{margin:0 0 14px; font-family:var(--disp); font-weight:600; font-size:12px;
   letter-spacing:.26em; text-transform:uppercase; color:var(--ink-dim);
   display:flex; align-items:center; gap:8px}
@@ -158,6 +162,12 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
   </header>
 
   <div class="grid">
+    <section class="card cam">
+      <h2>Camera</h2>
+      <img id="cam" class="off" alt="camera preview">
+      <div class="camhint" id="camhint">awaiting frames…</div>
+    </section>
+
     <section class="card drive">
       <h2>Manual Drive</h2>
       <div class="pad">
@@ -307,9 +317,16 @@ async function pollLogs(){
   }catch(e){}
 }
 
-poll(); pollLogs();
+/* ---- camera preview poll (~0.6 Hz source: 1/50 of 30 fps) ---- */
+const cam=$('#cam'), camhint=$('#camhint'); let camN=0;
+cam.addEventListener('load',()=>{ cam.classList.remove('off'); camhint.style.display='none'; });
+cam.addEventListener('error',()=>{ cam.classList.add('off'); camhint.style.display=''; });
+function pollCam(){ cam.src='/camera_image?t='+(camN++); }
+
+poll(); pollLogs(); pollCam();
 setInterval(poll,600);
 setInterval(pollLogs,1500);
+setInterval(pollCam,1500);
 </script>
 </body>
 </html>"""

@@ -4,7 +4,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from sensor_msgs.msg import CameraInfo, Image
+from sensor_msgs.msg import CameraInfo, CompressedImage, Image
 
 from autonomous_rover.nodes.camera.calibration import load_camera_info
 
@@ -46,6 +46,13 @@ class CameraNode(Node):
 
         self._img_pub = self.create_publisher(Image, self._param("rgb_topic", "/camera/image_raw"), 10)
         self._info_pub = self.create_publisher(CameraInfo, self._param("camera_info_topic", "/camera/camera_info"), 10)
+
+        # Low-rate JPEG preview for the operator console (every Nth frame).
+        self.preview_every_n = int(self._param("preview_every_n", 50))
+        self._preview_pub = self.create_publisher(
+            CompressedImage, self._param("preview_topic", "/camera/preview/compressed"), 1
+        )
+        self._frame_count = 0
 
         self._cap = self._open_source()
         if self.fps > 0:
@@ -105,6 +112,22 @@ class CameraNode(Node):
         img.header.frame_id = self.frame_id
         self._img_pub.publish(img)
         self._info_pub.publish(self._make_info(stamp))
+        self._publish_preview(frame, img.header)
+
+    def _publish_preview(self, frame, header):
+        if self.preview_every_n <= 0 or cv2 is None:
+            return
+        self._frame_count += 1
+        if self._frame_count % self.preview_every_n != 0:
+            return
+        ok, buf = cv2.imencode(".jpg", frame)
+        if not ok:
+            return
+        msg = CompressedImage()
+        msg.header = header
+        msg.format = "jpeg"
+        msg.data = buf.tobytes()
+        self._preview_pub.publish(msg)
 
 
 def main(args=None):
