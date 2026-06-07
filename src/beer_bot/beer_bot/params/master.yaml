@@ -6,4 +6,4 @@ master_node:
     log_buffer_size: 200
     cloud_max_points: 20000
     teleop_linear: 1.25
-    teleop_angular: 2.5
+    teleop_angular: 2.0
