@@ -53,6 +53,10 @@ def generate_launch_description():
                             "frame_id": "base_link",
                             "approx_sync": True,
                             "subscribe_depth": True,
+                            # Depth lags ~0.6s behind its source image (estimator runs ~1.6Hz
+                            # vs 30Hz camera); hold ~1s of image/info history so stamps match.
+                            "topic_queue_size": 30,
+                            "sync_queue_size": 30,
                         }],
                         remappings=[
                             ("rgb/image", "/camera/image_raw"),
@@ -71,6 +75,8 @@ def generate_launch_description():
                             "subscribe_depth": True,
                             "approx_sync": True,
                             "Rtabmap/DetectionRate": "2.0",
+                            "topic_queue_size": 30,
+                            "sync_queue_size": 30,
                         }],
                         remappings=[
                             ("rgb/image", "/camera/image_raw"),
