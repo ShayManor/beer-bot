@@ -107,12 +107,16 @@ class ECommsNode(Node):
     # -- drive ------------------------------------------------------------
     @staticmethod
     def mix(v, omega, track_width, scale, max_cmd):
-        """(v, omega) -> (left, right) board command, clamped to +/-max_cmd."""
+        """(v, omega) -> (left, right) board command. If either wheel exceeds
+        max_cmd, scale both down together so the turn differential survives."""
         half = 0.5 * track_width * omega
         left = (v - half) * scale
         right = (v + half) * scale
-        clamp = lambda x: max(-max_cmd, min(max_cmd, x))
-        return clamp(left), clamp(right)
+        peak = max(abs(left), abs(right))
+        if peak > max_cmd:
+            left *= max_cmd / peak
+            right *= max_cmd / peak
+        return left, right
 
     def _on_cmd_vel(self, msg):
         self._last_cmd_time = time.monotonic()
