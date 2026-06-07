@@ -4,9 +4,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: beer-bot-dev
-    container_name: beer-bot-dev
-    hostname: beer-bot-dev
+    image: autonomous-rover-dev
+    container_name: autonomous-rover-dev
+    hostname: autonomous-rover-dev
     volumes:
       - ../:/ws
       - ros_cache:/root/.cache

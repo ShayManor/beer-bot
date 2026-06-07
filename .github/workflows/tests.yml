@@ -57,7 +57,7 @@ jobs:
           set -exo pipefail
           source /opt/ros/jazzy/setup.bash
           cd /ws
-          colcon build --packages-select beer_bot --symlink-install \
+          colcon build --packages-select autonomous_rover --symlink-install \
             --cmake-args -DBUILD_TESTING=ON
 
       - name: Install coverage tooling
@@ -74,10 +74,10 @@ jobs:
           source /ws/install/setup.bash
           cd /ws
           colcon test \
-            --packages-select beer_bot \
+            --packages-select autonomous_rover \
             --event-handlers console_direct+ \
             --pytest-args -rfEs --color=no \
-              --cov=beer_bot \
+              --cov=autonomous_rover \
               --cov-report=term \
               --cov-report=json:/ws/coverage.json
           colcon test-result --verbose
@@ -92,7 +92,7 @@ jobs:
           from collections import defaultdict
 
           COV_PATH = "/ws/coverage.json"
-          NODES_DIR = "/ws/src/beer_bot/beer_bot/nodes"
+          NODES_DIR = "/ws/src/autonomous_rover/autonomous_rover/nodes"
 
           if not os.path.exists(COV_PATH):
               print("no coverage.json produced — skipping report")
@@ -176,5 +176,5 @@ jobs:
           name: colcon-test-logs
           path: |
             /ws/log/latest_test
-            /ws/build/beer_bot/test_results
+            /ws/build/autonomous_rover/test_results
           if-no-files-found: ignore
