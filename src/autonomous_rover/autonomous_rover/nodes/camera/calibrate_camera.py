@@ -10,6 +10,7 @@ Usage:
       --rows 6 --cols 9 --square 0.025 --device 0 --views 15
 """
 import argparse
+import os
 
 import numpy as np
 
@@ -74,7 +75,7 @@ def main():
         return
     K, D, rms = calibrate(obj_points, img_points, size)
     save_calibration(args.output, K, D, size[0], size[1])
-    print(f"Wrote {args.output} (reprojection RMS = {rms:.3f} px)")
+    print(f"Wrote {os.path.abspath(args.output)} (reprojection RMS = {rms:.3f} px)")
 
 
 if __name__ == "__main__":

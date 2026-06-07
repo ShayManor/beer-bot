@@ -55,6 +55,8 @@ class CameraNode(Node):
         self._frame_count = 0
 
         self._cap = self._open_source()
+        if self._cap is None:
+            self.logger.warning(f"No camera opened (source='{self.source}'); publishing SYNTHETIC frames")
         if self.fps > 0:
             self.create_timer(1.0 / self.fps, self._tick)
         self.logger.info("Initialized Camera Node")
