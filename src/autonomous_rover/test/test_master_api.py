@@ -24,7 +24,7 @@ def test_index_page(ros_ctx):
         assert r.status_code == 200
         assert "text/html" in r.content_type
         html = r.get_data(as_text=True)
-        assert "BEER" in html
+        assert "ROVER" in html
         # teleop magnitudes are substituted into the page
         assert "__TELEOP_V__" not in html and "__TELEOP_W__" not in html
         node.destroy_node()

@@ -72,3 +72,7 @@ CLAUDE.md
 
 # Local working docs (specs, plans, audits) — never committed
 docs/superpowers/
+
+# IDE & tooling artifacts
+.idea/
+.playwright-mcp/

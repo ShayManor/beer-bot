@@ -12,7 +12,7 @@ INDEX_HTML = r"""<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07090b">
-<title>BEER·BOT — mission control</title>
+<title>AUTONOMOUS·ROVER — mission control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -148,7 +148,7 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
     <div class="brand">
       <div>
         <div class="kicker">Mission Control</div>
-        <div class="logo">BEER<b>·</b>BOT</div>
+        <div class="logo">AUTONOMOUS<b>·</b>ROVER</div>
       </div>
     </div>
     <div class="hud">
