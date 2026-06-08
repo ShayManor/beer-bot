@@ -14,7 +14,10 @@ import os
 
 import numpy as np
 
-from autonomous_rover.nodes.camera.calibration import save_calibration
+try:
+    from autonomous_rover.nodes.camera.calibration import save_calibration
+except ModuleNotFoundError:  # run directly as a script, not as a package module
+    from calibration import save_calibration
 
 
 def calibrate(object_points, image_points, image_size):
@@ -42,6 +45,10 @@ def main():
     ap.add_argument("--device", type=int, default=0)
     ap.add_argument("--views", type=int, default=15)
     args = ap.parse_args()
+
+    out_dir = os.path.dirname(os.path.abspath(args.output)) or "."
+    if not os.path.isdir(out_dir):
+        raise SystemExit(f"Output directory does not exist: {out_dir}")
 
     objp = _board_points(args.rows, args.cols, args.square)
     obj_points, img_points = [], []
