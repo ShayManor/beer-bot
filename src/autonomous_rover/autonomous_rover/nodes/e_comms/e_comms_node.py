@@ -19,6 +19,8 @@ import traceback
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
+from rclpy.qos import DurabilityPolicy, QoSProfile
+from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu, MagneticField
 
@@ -67,6 +69,15 @@ class ECommsNode(Node):
         self.imu_pub = self.create_publisher(Imu, self._param("imu_topic", "imu/data"), 10)
         self.mag_pub = self.create_publisher(MagneticField, self._param("mag_topic", "imu/mag"), 10)
         self.create_subscription(Twist, self._param("cmd_vel_topic", "cmd_vel"), self._on_cmd_vel, 10)
+        # Hard motion gate: idle forces the wheels stopped no matter who publishes
+        # cmd_vel (planner or operator teleop). Latched so we catch master's last
+        # state on startup; default active so the rover is drivable if no master.
+        self._active = True
+        state_qos = QoSProfile(depth=1)
+        state_qos.durability = DurabilityPolicy.TRANSIENT_LOCAL
+        self.create_subscription(
+            String, self._param("robot_state_topic", "/robot_state"), self._on_state, state_qos
+        )
 
         self._ser = None
         self._write_lock = threading.Lock()
@@ -129,7 +140,20 @@ class ECommsNode(Node):
             return math.copysign(min_cmd, cmd)
         return cmd
 
+    def _on_state(self, msg):
+        """Track the robot_state gate; only an explicit 'active' permits motion.
+        On entering idle, stop the wheels immediately rather than wait for the
+        watchdog or a stale cmd_vel."""
+        self._active = msg.data == "active"
+        if not self._active:
+            self._send({"T": CMD_SPEED_CTRL, "L": 0, "R": 0})
+            self._last_cmd_time = 0.0
+
     def _on_cmd_vel(self, msg):
+        if not self._active:
+            # Idle gate: refuse all motion regardless of who published cmd_vel.
+            self._send({"T": CMD_SPEED_CTRL, "L": 0, "R": 0})
+            return
         self._last_cmd_time = time.monotonic()
         left, right = self.mix(
             msg.linear.x * -1, msg.angular.z, self.wheel_cmd_per_mps, self.wheel_cmd_per_radps, self.max_wheel_cmd

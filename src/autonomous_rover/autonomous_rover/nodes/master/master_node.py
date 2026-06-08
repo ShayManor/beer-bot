@@ -77,7 +77,7 @@ class MasterNode(Node):
         log_size = int(self._param("log_buffer_size", 200))
 
         self._lock = threading.Lock()
-        self._state = "idle"
+        self._state = "active"
         self._goal = None
         self._pose = None
         self._path = []
@@ -107,7 +107,7 @@ class MasterNode(Node):
             1,
         )
 
-        self._publish_state()  # announce initial idle
+        self._publish_state()  # announce initial active (autonomous by default)
         self.app = self._build_app()
         self._server_thread = None
         self.logger.info("Initialized Master Node")

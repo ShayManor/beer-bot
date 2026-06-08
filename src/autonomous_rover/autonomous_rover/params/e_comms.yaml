@@ -3,6 +3,7 @@ e_comms_node:
     serial_port: "/dev/ttyUSB0"   # WAVE ROVER ESP32 over USB/UART
     baud_rate: 115200
     cmd_vel_topic: "cmd_vel"
+    robot_state_topic: "/robot_state"   # idle here forces wheels stopped (hard motion gate)
     imu_topic: "imu/data"
     mag_topic: "imu/mag"
     imu_frame_id: "imu_link"

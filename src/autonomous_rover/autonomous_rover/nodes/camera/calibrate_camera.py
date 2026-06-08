@@ -44,6 +44,8 @@ def main():
     ap.add_argument("--square", type=float, default=0.025)
     ap.add_argument("--device", type=int, default=0)
     ap.add_argument("--views", type=int, default=15)
+    ap.add_argument("--width", type=int, default=0, help="capture width; 0 keeps camera default")
+    ap.add_argument("--height", type=int, default=0, help="capture height; 0 keeps camera default")
     args = ap.parse_args()
 
     out_dir = os.path.dirname(os.path.abspath(args.output)) or "."
@@ -53,6 +55,13 @@ def main():
     objp = _board_points(args.rows, args.cols, args.square)
     obj_points, img_points = [], []
     cap = cv2.VideoCapture(args.device)
+    if args.width and args.height:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
+        got_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        got_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        if (got_w, got_h) != (args.width, args.height):
+            print(f"WARNING: camera gave {got_w}x{got_h}, not {args.width}x{args.height}")
     size = None
     print(f"Show the {args.cols}x{args.rows} board; capturing {args.views} views. 'q' to abort.")
     while len(img_points) < args.views:

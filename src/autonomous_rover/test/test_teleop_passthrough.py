@@ -222,6 +222,30 @@ def test_teleop_deadband_lifts_inner_wheel(ros_ctx, spin_helper):
         ecomms.destroy_node()
 
 
+def test_idle_gate_blocks_teleop(ros_ctx, spin_helper):
+    """idle state forces no motion: even an explicit teleop command lands as a
+    stop frame at the wheels, never a drive frame. The gate lives in e_comms so
+    it catches operator teleop too, not just the planner's cmd_vel."""
+    rclpy = pytest.importorskip("rclpy")
+    pytest.importorskip("flask")
+
+    with ros_ctx({"e_comms_node.imu_rate": 0.0}):
+        master, ecomms, fake, executor, client = _build_chain(rclpy)
+
+        # Switch to idle and let the latched state reach e_comms.
+        assert client.post("/state", json={"state": "idle"}).status_code == 200
+        assert spin_helper(executor, lambda: ecomms._active is False)
+
+        # A real teleop command must not move the rover.
+        before = len(fake.drive_frames())
+        assert client.post("/teleop", json={"v": 0.6, "omega": 0.0}).status_code == 200
+        assert spin_helper(executor, lambda: len(fake.drive_frames()) > before)
+        assert all(f["L"] == 0 and f["R"] == 0 for f in fake.drive_frames())
+
+        master.destroy_node()
+        ecomms.destroy_node()
+
+
 def test_teleop_watchdog_stops_after_timeout(ros_ctx, spin_helper):
     """A held key that stops arriving must not strand the rover: after cmd_timeout
     with no new /cmd_vel, e_comms' watchdog emits a zero wheel frame on its own."""
