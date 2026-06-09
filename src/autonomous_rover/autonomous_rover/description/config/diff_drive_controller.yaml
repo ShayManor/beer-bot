@@ -1,0 +1,24 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    diff_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+
+diff_drive_controller:
+  ros__parameters:
+    left_wheel_names: [front_left_wheel_joint, rear_left_wheel_joint]
+    right_wheel_names: [front_right_wheel_joint, rear_right_wheel_joint]
+    # Geometric track from the CAD split. Skid-steer scrub makes the EFFECTIVE
+    # separation larger than this — tune up if sim turns too fast (mirrors the
+    # angular-gain note in CLAUDE.md for the real feedforward map).
+    wheel_separation: 0.132
+    wheel_radius: 0.040
+    base_frame_id: base_link
+    odom_frame_id: odom
+    # Sim wheel odom. Under the full VIO/RTAB-Map stack, pose comes from SLAM,
+    # not wheels: set enable_odom_tf:false and remap odom in the launch.
+    enable_odom_tf: true
+    use_stamped_vel: false
+    publish_rate: 50.0

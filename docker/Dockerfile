@@ -20,6 +20,14 @@ RUN apt-get -o Acquire::http::Pipeline-Depth="0" \
       ros-${ROS_DISTRO}-rtabmap-ros \
       ros-${ROS_DISTRO}-cv-bridge \
       python3-opencv \
+      ros-${ROS_DISTRO}-xacro \
+      ros-${ROS_DISTRO}-urdfdom-py \
+      ros-${ROS_DISTRO}-robot-state-publisher \
+      ros-${ROS_DISTRO}-ros-gz-sim \
+      ros-${ROS_DISTRO}-ros-gz-bridge \
+      ros-${ROS_DISTRO}-gz-ros2-control \
+      ros-${ROS_DISTRO}-diff-drive-controller \
+      ros-${ROS_DISTRO}-joint-state-broadcaster \
       git curl nano && \
     rm -rf /var/lib/apt/lists/*
 

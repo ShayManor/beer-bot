@@ -1,0 +1,9 @@
+# Inertial build-up inputs (base_link frame, metres, kg). ESTIMATES — replace
+# with measured values; Deliverable-2 ID refines the observable directions.
+chassis_bare_mass: 0.50     # aluminium chassis + ESP32 board, minus wheels/payload
+wheel_mass_each: 0.05       # tire + hub + N20 motor
+payloads:
+  - {name: rubik_pi,     mass: 0.09, pose: [0.00, 0.0, 0.050], box: [0.055, 0.085, 0.012]}
+  - {name: camera_mast,  mass: 0.06, pose: [0.07, 0.0, 0.120], box: [0.030, 0.030, 0.180]}
+  - {name: battery_pack, mass: 0.14, pose: [-0.03, 0.0, 0.010], box: [0.070, 0.070, 0.067]}
+  - {name: wiring_misc,  mass: 0.05, pose: [0.00, 0.0, 0.030], box: [0.100, 0.100, 0.040]}

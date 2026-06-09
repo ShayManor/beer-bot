@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="wave_rover_gazebo" params="camera_frame imu_frame">
+    <!-- ros2_control system plugin: loads the controllers yaml. -->
+    <gazebo>
+      <plugin filename="gz_ros2_control-system"
+              name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>$(find autonomous_rover)/description/config/diff_drive_controller.yaml</parameters>
+      </plugin>
+    </gazebo>
+
+    <!-- RGB camera on the optical frame -> bridged to /camera/image_raw. -->
+    <gazebo reference="${camera_frame}">
+      <sensor name="rgb_camera" type="camera">
+        <update_rate>30</update_rate>
+        <topic>camera/image_raw</topic>
+        <gz_frame_id>${camera_frame}</gz_frame_id>
+        <camera>
+          <horizontal_fov>1.0472</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+          <clip><near>0.05</near><far>20.0</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+
+    <!-- IMU on imu_link -> bridged to /imu. -->
+    <gazebo reference="${imu_frame}">
+      <sensor name="imu" type="imu">
+        <update_rate>100</update_rate>
+        <topic>imu</topic>
+        <gz_frame_id>${imu_frame}</gz_frame_id>
+      </sensor>
+    </gazebo>
+
+    <!-- gz visual material. -->
+    <gazebo reference="base_link">
+      <visual><material><ambient>0.2 0.2 0.2 1</ambient><diffuse>0.3 0.3 0.3 1</diffuse></material></visual>
+    </gazebo>
+  </xacro:macro>
+</robot>

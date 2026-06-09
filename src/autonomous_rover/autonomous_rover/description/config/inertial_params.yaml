@@ -1,0 +1,29 @@
+meta:
+  source: cad_buildup
+  notes: chassis voxel inertia + payload build-up + analytic wheels
+base_link:
+  mass: 0.84
+  com:
+  - -0.0009186110600771596
+  - 0.0001867842488823568
+  - 0.03280224491045729
+  inertia:
+    ixx: 0.0017680892059850012
+    ixy: 2.7248771182609088e-06
+    ixz: -0.00045112537729632935
+    iyy: 0.0028134044452457437
+    iyz: 1.16500407009563e-06
+    izz: 0.0025508270460161304
+wheel:
+  mass: 0.05
+  com:
+  - 0.0
+  - 0.0
+  - 0.0
+  inertia:
+    ixx: 2.752604166666667e-05
+    ixy: 0.0
+    ixz: 0.0
+    iyy: 4.0e-05
+    iyz: 0.0
+    izz: 2.752604166666667e-05

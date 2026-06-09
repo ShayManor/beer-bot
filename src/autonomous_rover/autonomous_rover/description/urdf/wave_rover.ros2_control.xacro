@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- ros2_control hardware: gz-sim system exposing 4 velocity-controlled wheels. -->
+  <xacro:macro name="wave_rover_ros2_control">
+    <ros2_control name="WaveRoverGzSystem" type="system">
+      <hardware>
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </hardware>
+      <xacro:macro name="wheel_joint" params="name">
+        <joint name="${name}_wheel_joint">
+          <command_interface name="velocity">
+            <param name="min">-30.0</param>
+            <param name="max">30.0</param>
+          </command_interface>
+          <state_interface name="position"/>
+          <state_interface name="velocity"/>
+        </joint>
+      </xacro:macro>
+      <xacro:wheel_joint name="front_left"/>
+      <xacro:wheel_joint name="front_right"/>
+      <xacro:wheel_joint name="rear_left"/>
+      <xacro:wheel_joint name="rear_right"/>
+    </ros2_control>
+  </xacro:macro>
+</robot>
