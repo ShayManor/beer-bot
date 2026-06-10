@@ -2,10 +2,10 @@ localization_node:
   ros__parameters:
     camera_height_m: 0.1905      # 7.5 inches, fixed camera mount height
     camera_pitch_rad: 0.0
-    depth_estimator: "stub"
-    depth_model_path: "models/depth_anything_v2_metric_indoor_small.onnx"
+    depth_estimator: "onnx"
+    depth_model_path: "models/depth_anything_v2_metric_indoor_small_int8.onnx"
     depth_input_size: 518
-    onnx_providers: ["CPUExecutionProvider"]   # device: ["QNNExecutionProvider","CPUExecutionProvider"]
+    onnx_providers: ["QNNExecutionProvider", "CPUExecutionProvider"]   # sim/CPU-only: ["CPUExecutionProvider"]
     qnn_options:                               # only applied to QNNExecutionProvider
       - "backend_path=libQnnHtp.so"
       - "htp_performance_mode=burst"

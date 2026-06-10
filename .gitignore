@@ -74,9 +74,10 @@ CLAUDE.md
 docs/superpowers/
 
 # Depth net model artifacts: ignore compiled QNN context binaries / scratch,
-# but commit the fp32 source model so the Pi gets it on pull.
+# but commit the models the Pi needs on pull (int8 = NPU runtime, fp32 = requant source).
 models/*
 !models/depth_anything_v2_metric_indoor_small.onnx
+!models/depth_anything_v2_metric_indoor_small_int8.onnx
 
 # IDE & tooling artifacts
 .idea/
