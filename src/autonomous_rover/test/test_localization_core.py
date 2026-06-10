@@ -217,3 +217,31 @@ def test_onnx_estimator_estimate_with_fake_session(monkeypatch, tmp_path):
     assert out.shape == (5, 7)        # resized back to camera resolution
     assert out.dtype == np.float32
     assert np.allclose(out, 3.0)      # metric meters passthrough
+
+
+def test_compile_qnn_builds_options_and_calls_make_session(monkeypatch, tmp_path):
+    from autonomous_rover.nodes.localization import compile_qnn
+
+    model = tmp_path / "m.onnx"
+    model.write_bytes(b"stub")
+    out = tmp_path / "m_ctx.onnx"
+
+    seen = {}
+
+    def fake_make_session(model_path, providers, provider_options=None,
+                          compile_ctx=False, ctx_path=None):
+        seen.update(model_path=model_path, providers=providers,
+                    provider_options=provider_options,
+                    compile_ctx=compile_ctx, ctx_path=ctx_path)
+        return object()
+
+    monkeypatch.setattr(compile_qnn, "make_session", fake_make_session)
+    compile_qnn.main(["--model", str(model), "--out", str(out),
+                      "--options", "backend_path=libQnnHtp.so", "htp_arch=68"])
+
+    assert seen["model_path"] == str(model)
+    assert seen["providers"] == ["QNNExecutionProvider", "CPUExecutionProvider"]
+    assert seen["provider_options"] == [
+        {"backend_path": "libQnnHtp.so", "htp_arch": "68"}, {}]
+    assert seen["compile_ctx"] is True
+    assert seen["ctx_path"] == str(out)

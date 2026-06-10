@@ -39,6 +39,7 @@ setup(
             'e_comms_node = autonomous_rover.nodes.e_comms.e_comms_node:main',
             'master_node = autonomous_rover.nodes.master.master_node:main',
             'calibrate_camera = autonomous_rover.nodes.camera.calibrate_camera:main',
+            'compile_depth_qnn = autonomous_rover.nodes.localization.compile_qnn:main',
         ],
     },
 )
