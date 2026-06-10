@@ -102,6 +102,8 @@ class LocalizationNode(Node):
         if self.depth_estimator == "stub":
             return StubDepthEstimator(K, self.camera_height, self.pitch)
         if self.depth_estimator == "onnx":
+            if not self.model_path:
+                raise ValueError("depth_estimator is 'onnx' but depth_model_path is not set")
             popts = [self.qnn_options if p == "QNNExecutionProvider" else {}
                      for p in self.onnx_providers]
             return OnnxDepthEstimator(self.model_path, self.onnx_providers, popts,
