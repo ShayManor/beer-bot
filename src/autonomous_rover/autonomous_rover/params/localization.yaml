@@ -3,6 +3,15 @@ localization_node:
     camera_height_m: 0.1905      # 7.5 inches, fixed camera mount height
     camera_pitch_rad: 0.0
     depth_estimator: "stub"
+    depth_model_path: "models/depth_anything_v2_metric_indoor_small.onnx"
+    depth_input_size: 518
+    onnx_providers: ["CPUExecutionProvider"]   # device: ["QNNExecutionProvider","CPUExecutionProvider"]
+    qnn_options:                               # only applied to QNNExecutionProvider
+      - "backend_path=libQnnHtp.so"
+      - "htp_performance_mode=burst"
+      - "htp_graph_finalization_optimization_mode=3"
+      - "enable_htp_fp16_precision=1"
+      - "htp_arch=68"
     ransac_threshold: 0.02
     ransac_iterations: 200
     min_inliers: 50

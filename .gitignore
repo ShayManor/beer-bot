@@ -73,6 +73,9 @@ CLAUDE.md
 # Local working docs (specs, plans, audits) — never committed
 docs/superpowers/
 
+# Depth net model artifacts (fp32 onnx + compiled QNN context binaries)
+models/
+
 # IDE & tooling artifacts
 .idea/
 .playwright-mcp/
