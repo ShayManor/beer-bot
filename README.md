@@ -38,7 +38,9 @@ On the Pi (QCS6490):
    ```
 4. In `params/localization.yaml` set `depth_estimator: onnx`,
    `onnx_providers: ["QNNExecutionProvider", "CPUExecutionProvider"]`, and
-   `depth_model_path` to the `*_ctx.onnx`.
+   `depth_model_path` to the `*_ctx.onnx` (use an absolute path on-device — a
+   relative path is resolved against the package share, where `models/` is not
+   installed).
 
 In the devcontainer/sim, leave `depth_estimator: stub` (no model or onnxruntime
 needed), or use `onnx_providers: ["CPUExecutionProvider"]` with the fp32 model.
