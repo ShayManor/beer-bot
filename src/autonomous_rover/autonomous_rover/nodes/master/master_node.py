@@ -4,6 +4,7 @@ import threading
 import traceback
 from collections import deque
 
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
@@ -20,6 +21,8 @@ from autonomous_rover.nodes.master.web import INDEX_HTML
 
 # PointField datatype -> struct format char.
 _PF_FMT = {1: "b", 2: "B", 3: "h", 4: "H", 5: "i", 6: "I", 7: "f", 8: "d"}
+# PointField datatype -> numpy dtype char.
+_PF_NP = {1: "i1", 2: "u1", 3: "i2", 4: "u2", 5: "i4", 6: "u4", 7: "f4", 8: "f8"}
 
 
 def _yaw_from_quaternion(q):
@@ -50,6 +53,32 @@ def _read_xyz(cloud, max_points):
         z = struct.unpack_from(endian + _PF_FMT[fz.datatype], data, base + fz.offset)[0]
         pts.append([x, y, z])
     return pts, truncated
+
+
+def _pack_xyz(cloud, max_points):
+    """Extract finite (x, y, z) from a PointCloud2 into a contiguous little-endian
+    float32 buffer (xyzxyz...), uniformly subsampled to at most max_points.
+    Vectorized with numpy. Returns (bytes, count)."""
+    fields = {f.name: f for f in cloud.fields}
+    if not all(k in fields for k in ("x", "y", "z")):
+        return b"", 0
+    n = cloud.width * cloud.height
+    if n == 0:
+        return b"", 0
+    raw = np.frombuffer(bytes(cloud.data), dtype=np.uint8)
+    raw = raw[: n * cloud.point_step].reshape(n, cloud.point_step)
+    order = ">" if cloud.is_bigendian else "<"
+
+    def column(f):
+        dt = np.dtype(order + _PF_NP[f.datatype])
+        block = np.ascontiguousarray(raw[:, f.offset : f.offset + dt.itemsize])
+        return block.view(dt).reshape(-1).astype(np.float32)
+
+    xyz = np.stack([column(fields["x"]), column(fields["y"]), column(fields["z"])], axis=1)
+    xyz = xyz[np.isfinite(xyz).all(axis=1)]
+    if max_points and len(xyz) > max_points:
+        xyz = xyz[:: (len(xyz) + max_points - 1) // max_points]
+    return np.ascontiguousarray(xyz, dtype="<f4").tobytes(), len(xyz)
 
 
 class MasterNode(Node):
@@ -83,6 +112,11 @@ class MasterNode(Node):
         self._path = []
         self._cmd = {"v": None, "omega": None}
         self._cloud = None
+        self._cloud_msg_count = 0
+        self._cloud_seq = 0
+        self._cloud_packed = b""
+        self._cloud_count = 0
+        self._cloud_frame = None
         self._debug_image = None
         self._camera_image = None
         self._logs = deque(maxlen=log_size)
@@ -134,6 +168,16 @@ class MasterNode(Node):
     def _on_cloud(self, msg):
         with self._lock:
             self._cloud = msg
+            self._cloud_msg_count += 1
+            do_pack = self._cloud_msg_count % 5 == 0
+        if not do_pack:  # only re-pack/version every 5th cloud to stay cheap
+            return
+        packed, count = _pack_xyz(msg, self.cloud_max_points)
+        with self._lock:
+            self._cloud_packed = packed
+            self._cloud_count = count
+            self._cloud_frame = msg.header.frame_id
+            self._cloud_seq += 1
 
     def _on_debug_image(self, msg):
         with self._lock:
@@ -198,6 +242,7 @@ class MasterNode(Node):
                 "path": list(self._path),
                 "speed": dict(self._cmd),
                 "goal": self._goal,
+                "cloud_seq": self._cloud_seq,
             }
 
     def cloud_snapshot(self):
