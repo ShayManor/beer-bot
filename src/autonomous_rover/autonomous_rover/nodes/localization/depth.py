@@ -92,7 +92,7 @@ def make_session(model_path, providers, provider_options=None,
             so.add_session_config_entry("ep.context_file_path", ctx_path)
     providers = providers or ["CPUExecutionProvider"]
     if provider_options is None:
-        provider_options = [{}] * len(providers)
+        provider_options = [{} for _ in range(len(providers))]
     return ort.InferenceSession(model_path, sess_options=so,
                                 providers=providers,
                                 provider_options=provider_options)
