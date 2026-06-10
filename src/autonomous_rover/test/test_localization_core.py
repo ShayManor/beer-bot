@@ -178,3 +178,5 @@ def test_parse_qnn_options():
     opts = parse_qnn_options(["backend_path=libQnnHtp.so", "htp_arch=68", "", "  "])
     assert opts == {"backend_path": "libQnnHtp.so", "htp_arch": "68"}
     assert parse_qnn_options([]) == {}
+    # values may contain '=' (split on the first only)
+    assert parse_qnn_options(["k=val=extra"]) == {"k": "val=extra"}
