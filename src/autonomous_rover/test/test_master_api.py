@@ -75,6 +75,54 @@ def test_status_and_map_shape(ros_ctx):
         node.destroy_node()
 
 
+def _make_cloud(pts):
+    import struct as _struct
+
+    from sensor_msgs.msg import PointCloud2, PointField
+
+    msg = PointCloud2()
+    msg.header.frame_id = "map"
+    msg.height = 1
+    msg.width = len(pts)
+    msg.fields = [
+        PointField(name=n, offset=o, datatype=PointField.FLOAT32, count=1)
+        for n, o in (("x", 0), ("y", 4), ("z", 8))
+    ]
+    msg.is_bigendian = False
+    msg.point_step = 12
+    msg.row_step = 12 * len(pts)
+    msg.data = b"".join(_struct.pack("<fff", *p) for p in pts)
+    return msg
+
+
+def test_cloud_bin_endpoint_and_cadence(ros_ctx):
+    import numpy as np
+
+    with ros_ctx():
+        node, client = _client(ros_ctx)
+        # No cloud yet -> seq 0, empty body.
+        assert client.get("/status").get_json()["cloud_seq"] == 0
+        r = client.get("/cloud.bin")
+        assert r.status_code == 200
+        assert r.headers["X-Cloud-Seq"] == "0"
+        assert r.get_data() == b""
+
+        msg = _make_cloud([(1.0, 2.0, 3.0), (4.0, 5.0, 6.0), (7.0, 8.0, 9.0)])
+        # Only every 5th cloud is packed/versioned.
+        for _ in range(4):
+            node._on_cloud(msg)
+        assert client.get("/status").get_json()["cloud_seq"] == 0
+        node._on_cloud(msg)
+        assert client.get("/status").get_json()["cloud_seq"] == 1
+
+        r = client.get("/cloud.bin")
+        assert r.headers["X-Cloud-Count"] == "3"
+        assert r.headers["X-Cloud-Frame"] == "map"
+        arr = np.frombuffer(r.get_data(), dtype="<f4")
+        assert arr.tolist() == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        node.destroy_node()
+
+
 def test_logs_record_events(ros_ctx):
     with ros_ctx():
         node, client = _client(ros_ctx)
