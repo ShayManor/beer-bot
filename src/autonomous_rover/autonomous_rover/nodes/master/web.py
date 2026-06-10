@@ -73,10 +73,10 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
 
 /* ---------- layout ---------- */
 .grid{display:grid; gap:var(--gap); grid-template-columns:1fr;
-  grid-template-areas:"cam" "drive" "state" "tele" "log";}
+  grid-template-areas:"cam" "map" "drive" "state" "tele" "log";}
 @media(min-width:760px){
   .grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
-    grid-template-areas:"cam cam" "drive state" "drive tele" "log log";}
+    grid-template-areas:"cam cam" "map map" "drive state" "drive tele" "log log";}
 }
 .card{position:relative; background:linear-gradient(180deg,var(--panel),var(--panel-2));
   border:1px solid var(--line); border-radius:var(--radius); padding:16px;
@@ -85,7 +85,16 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
 .card:nth-child(1){animation-delay:.04s}.card:nth-child(2){animation-delay:.1s}
 .card:nth-child(3){animation-delay:.16s}.card:nth-child(4){animation-delay:.22s}
 @keyframes rise{to{opacity:1; transform:none}}
-.drive{grid-area:drive}.state{grid-area:state}.tele{grid-area:tele}.log{grid-area:log}.cam{grid-area:cam}
+.drive{grid-area:drive}.state{grid-area:state}.tele{grid-area:tele}.log{grid-area:log}.cam{grid-area:cam}.map3d{grid-area:map}
+/* ---------- 3D map ---------- */
+.viewport{position:relative; height:440px; border:1px solid var(--line); border-radius:10px;
+  overflow:hidden; background:radial-gradient(120% 120% at 50% 0%, #0b1116, #06090c)}
+.viewport canvas{display:block; width:100%; height:100%}
+.vp-meta{position:absolute; left:12px; bottom:10px; font-size:10.5px; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--ink-faint); pointer-events:none; font-variant-numeric:tabular-nums}
+.vp-meta b{color:var(--ink-dim); font-weight:500}
+.vp-hint{position:absolute; right:12px; top:10px; font-size:10px; letter-spacing:.1em;
+  color:var(--ink-faint); pointer-events:none}
 .cam img{display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:10px;
   border:1px solid var(--line); background:#080c0f}
 .cam img.off{display:none}
@@ -166,6 +175,14 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
       <h2>Camera</h2>
       <img id="cam" class="off" alt="camera preview">
       <div class="camhint" id="camhint">awaiting frames…</div>
+    </section>
+
+    <section class="card map3d">
+      <h2>3D Map</h2>
+      <div class="viewport" id="viewport">
+        <div class="vp-hint">drag · scroll · right-drag</div>
+        <div class="vp-meta" id="vpMeta">awaiting cloud…</div>
+      </div>
     </section>
 
     <section class="card drive">
@@ -327,6 +344,81 @@ poll(); pollLogs(); pollCam();
 setInterval(poll,600);
 setInterval(pollLogs,1500);
 setInterval(pollCam,1500);
+</script>
+
+<!-- 3D point-cloud viewer: three.js pulled over the client's connection (same as fonts) -->
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const vp=document.getElementById('viewport'), meta=document.getElementById('vpMeta');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+vp.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(55,1,0.01,500);
+camera.up.set(0,0,1);                 // ROS map frame is z-up
+camera.position.set(4,-4,3);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=0.08;
+
+const grid=new THREE.GridHelper(20,20,0x28333f,0x161d24);
+grid.rotation.x=Math.PI/2;            // GridHelper is xz by default -> lay it in xy (floor)
+scene.add(grid); scene.add(new THREE.AxesHelper(0.5));
+
+const geom=new THREE.BufferGeometry();
+geom.setAttribute('position',new THREE.BufferAttribute(new Float32Array(0),3));
+geom.setAttribute('color',new THREE.BufferAttribute(new Float32Array(0),3));
+scene.add(new THREE.Points(geom,new THREE.PointsMaterial({size:0.03,vertexColors:true,sizeAttenuation:true})));
+
+const robot=new THREE.Group(); robot.visible=false;
+const cone=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.32,16),new THREE.MeshBasicMaterial({color:0x28e0a0}));
+cone.rotation.z=-Math.PI/2;           // cone points +y by default -> aim +x (robot forward)
+robot.add(cone); scene.add(robot);
+
+function resize(){const w=vp.clientWidth,h=vp.clientHeight; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();}
+addEventListener('resize',resize); resize();
+
+// height -> color ramp (low blue -> cyan -> yellow -> red high)
+function tint(t,out,o){t=Math.min(1,Math.max(0,t));
+  out[o]=Math.min(1,Math.max(0,1.5-Math.abs(t-1)*2.5));
+  out[o+1]=Math.min(1,Math.max(0,1.5-Math.abs(t-0.5)*2.5));
+  out[o+2]=Math.min(1,Math.max(0,1.5-t*2.5));}
+
+async function loadCloud(){
+  const r=await fetch('/cloud.bin');
+  const seq=+r.headers.get('X-Cloud-Seq');
+  const xyz=new Float32Array(await r.arrayBuffer());
+  const n=xyz.length/3, colors=new Float32Array(n*3);
+  let zmin=Infinity,zmax=-Infinity;
+  for(let i=0;i<n;i++){const z=xyz[i*3+2]; if(z<zmin)zmin=z; if(z>zmax)zmax=z;}
+  const span=(zmax-zmin)||1;
+  for(let i=0;i<n;i++) tint((xyz[i*3+2]-zmin)/span,colors,i*3);
+  geom.setAttribute('position',new THREE.BufferAttribute(xyz,3));
+  geom.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  geom.computeBoundingSphere();
+  return {seq,n};
+}
+
+let lastSeq=-1, ptN=0;
+async function syncMap(){
+  try{
+    const s=await(await fetch('/status')).json();
+    const p=s.pose;
+    if(p){robot.visible=true; robot.position.set(p.x,p.y,p.z||0); robot.rotation.z=(s.heading==null?0:s.heading);}
+    if(s.cloud_seq>0 && s.cloud_seq!==lastSeq){const c=await loadCloud(); lastSeq=c.seq; ptN=c.n;}
+    meta.innerHTML=(lastSeq>0)?'<b>'+ptN.toLocaleString()+'</b> pts · seq <b>'+lastSeq+'</b>':'awaiting cloud…';
+  }catch(e){}
+}
+syncMap(); setInterval(syncMap,600);
+(function tick(){controls.update(); renderer.render(scene,camera); requestAnimationFrame(tick);})();
 </script>
 </body>
 </html>"""

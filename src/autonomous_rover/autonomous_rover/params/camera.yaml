@@ -9,7 +9,7 @@ camera_node:
     fps: 30.0
     fov_deg: 82.1              # C930e horizontal FOV at 16:9 (90 deg diagonal)
     frame_id: "camera_optical_frame"
-    calibration_file: "src/autonomous_rover/autonomous_rover/params/camera_calib.yaml"  # empty -> FOV default
+    calibration_file: "camera_calib.yaml"  # resolved from package share; empty -> FOV default
     rgb_topic: "/camera/image_raw"
     camera_info_topic: "/camera/camera_info"
     preview_every_n: 5        # JPEG preview to the console every Nth frame (0 disables)

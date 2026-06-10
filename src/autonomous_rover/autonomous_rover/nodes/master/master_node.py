@@ -281,6 +281,18 @@ class MasterNode(Node):
         def get_map():
             return jsonify(self.cloud_snapshot())
 
+        @app.route("/cloud.bin", methods=["GET"])
+        def cloud_bin():
+            with self._lock:
+                data, seq, count, frame = (
+                    self._cloud_packed, self._cloud_seq, self._cloud_count, self._cloud_frame,
+                )
+            resp = Response(data, mimetype="application/octet-stream")
+            resp.headers["X-Cloud-Seq"] = str(seq)
+            resp.headers["X-Cloud-Count"] = str(count)
+            resp.headers["X-Cloud-Frame"] = frame or ""
+            return resp
+
         @app.route("/debug_image", methods=["GET"])
         def debug_image():
             with self._lock:

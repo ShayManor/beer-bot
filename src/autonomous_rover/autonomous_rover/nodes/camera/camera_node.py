@@ -42,8 +42,20 @@ class CameraNode(Node):
         self.video_path = str(self._param("video_path", ""))
         fov_deg = float(self._param("fov_deg", 70.0))
         calib_file = str(self._param("calibration_file", ""))
+        if calib_file and not os.path.isabs(calib_file) and not os.path.exists(calib_file):
+            try:  # resolve against the installed package share, not the launch cwd
+                share = get_package_share_directory("autonomous_rover")
+                candidate = os.path.join(share, "params", os.path.basename(calib_file))
+                if os.path.exists(candidate):
+                    calib_file = candidate
+            except Exception:
+                pass
 
         self.K, self.D = load_camera_info(calib_file, self.width, self.height, fov_deg)
+        if calib_file and os.path.exists(calib_file):
+            self.logger.info(f"Loaded camera calibration from {calib_file}")
+        else:
+            self.logger.warning(f"No calibration file found; using FOV default ({fov_deg} deg)")
         self._bridge = CvBridge() if CvBridge else None
 
         self._img_pub = self.create_publisher(Image, self._param("rgb_topic", "/camera/image_raw"), 10)
