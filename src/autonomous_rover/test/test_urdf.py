@@ -29,6 +29,20 @@ def test_urdf_is_valid_tree():
     assert len(robot.joints) == len(robot.links) - 1
 
 
+def test_camera_frame_id_exists_in_urdf():
+    """The camera stamps images with this frame_id and rgbd_odometry/rtabmap look it
+    up against base_link, so it must be a real link the URDF (hence RSP) publishes."""
+    import yaml
+
+    share = get_package_share_directory("autonomous_rover")
+    with open(f"{share}/params/camera.yaml") as f:
+        frame_id = yaml.safe_load(f)["camera_node"]["ros__parameters"]["frame_id"]
+    urdf = _xacro_to_urdf()
+    up = pytest.importorskip("urdf_parser_py.urdf")
+    robot = up.URDF.from_xml_string(urdf)
+    assert frame_id in {l.name for l in robot.links}
+
+
 def test_inertials_present_and_positive():
     urdf = _xacro_to_urdf()
     up = pytest.importorskip("urdf_parser_py.urdf")

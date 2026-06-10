@@ -89,11 +89,22 @@ class CameraNode(Node):
             # start pipeline"). CAP_V4L2 works for both the path and an int index.
             cap = cv2.VideoCapture(target, cv2.CAP_V4L2) if self.source == "webcam" else cv2.VideoCapture(target)
             if self.source == "webcam":
+                # MJPG so the C930e can sustain the requested rate at 848x480
+                # (uncompressed YUYV caps at 15 fps); CAP_PROP_FPS drives the
+                # hardware capture rate straight from the fps param.
+                cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
                 cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
                 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+                cap.set(cv2.CAP_PROP_FPS, self.fps)
             if not cap.isOpened():
                 self.logger.warning(f"Could not open source '{target}'; using synthetic frames")
                 return None
+            if self.source == "webcam":
+                self.logger.info(
+                    f"Camera opened: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x"
+                    f"{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))} @ {cap.get(cv2.CAP_PROP_FPS):.0f} fps "
+                    f"(requested {self.fps:.0f})"
+                )
             return cap
         return None
 

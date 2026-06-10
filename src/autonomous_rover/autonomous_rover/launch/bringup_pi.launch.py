@@ -1,6 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node, SetParameter, SetParametersFromFile
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -16,6 +16,7 @@ def generate_launch_description():
     localization_yaml = os.path.join(pkg_share, "params", "localization.yaml")
     e_comms_yaml = os.path.join(pkg_share, "params", "e_comms.yaml")
     master_yaml = os.path.join(pkg_share, "params", "master.yaml")
+    xacro_file = os.path.join(pkg_share, "description", "urdf", "wave_rover.urdf.xacro")
 
     sim_mode = LaunchConfiguration("simulation_mode")
 
@@ -26,6 +27,15 @@ def generate_launch_description():
                 [
                     SetParametersFromFile(system_yaml),
                     SetParameter(name="simulation_mode", value=sim_mode),
+                    # Publishes the static base_link -> camera_link_optical TF (and the rest
+                    # of the tree) that rgbd_odometry/rtabmap need. No joint_states on the
+                    # encoder-less rover, but the fixed sensor joints publish immediately.
+                    Node(
+                        package="robot_state_publisher",
+                        executable="robot_state_publisher",
+                        name="robot_state_publisher",
+                        parameters=[{"robot_description": Command(["xacro ", xacro_file])}],
+                    ),
                     Node(
                         package="autonomous_rover",
                         executable="camera_node",
