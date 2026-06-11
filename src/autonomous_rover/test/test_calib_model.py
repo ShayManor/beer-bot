@@ -21,6 +21,17 @@ def test_fit_affine_rejects_outliers():
     assert abs(b - 0.02) < 0.05
 
 
+def test_fit_affine_unsorted_odd_with_outliers():
+    rng = np.random.default_rng(1)
+    raw = np.linspace(0.3, 4.0, 201)   # odd length
+    true = 1.1 * raw + 0.02
+    true[::20] += 5.0                  # gross outliers
+    perm = rng.permutation(len(raw))   # shuffle so input is unsorted
+    a, b, res = fit_affine(raw[perm], true[perm])
+    assert abs(a - 1.1) < 0.05
+    assert abs(b - 0.02) < 0.05
+
+
 def test_floor_truth_matches_geometry():
     # Build points exactly on a plane at height h with a known unit normal.
     h = 0.19

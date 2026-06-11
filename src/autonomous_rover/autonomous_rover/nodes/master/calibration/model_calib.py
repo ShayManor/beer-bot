@@ -22,14 +22,20 @@ def floor_truth(points, normal, camera_height):
 
 
 def fit_affine(raw, true, trim_sigma=3.0):
-    """Robust least-squares true = a*raw + b. Median-slope seed + two MAD-trim passes.
-    Returns (a, b, residual_mean_abs)."""
+    """Robust least-squares true = a*raw + b. Order-independent: sorts by raw for a
+    median-slope seed, then two MAD-trim refit passes. Returns (a, b, residual_mean_abs)."""
     raw = np.asarray(raw, dtype=np.float64)
     true = np.asarray(true, dtype=np.float64)
-    # Median-slope initial estimate (breakdown ~50% — survives sparse gross outliers).
-    mid = len(raw) // 2
-    a = np.median(true[mid:] - true[:mid]) / np.median(raw[mid:] - raw[:mid])
-    b = np.median(true - a * raw)
+    order = np.argsort(raw)
+    raw, true = raw[order], true[order]
+    # Median-slope seed (breakdown ~50%); symmetric halves handle odd N.
+    half = len(raw) // 2
+    dr = np.median(raw[-half:] - raw[:half]) if half else 0.0
+    if dr > 1e-9:
+        a = np.median(true[-half:] - true[:half]) / dr
+        b = np.median(true - a * raw)
+    else:  # degenerate spread -> ordinary least squares seed
+        a, b = np.polyfit(raw, true, 1)
     keep = np.ones(len(raw), dtype=bool)
     for _ in range(2):
         resid = true - (a * raw + b)
