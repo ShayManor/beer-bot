@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from autonomous_rover.nodes.localization import depth as D
 
@@ -17,6 +16,8 @@ def test_load_missing_returns_identity():
 
 
 def test_onnx_estimator_applies_affine(monkeypatch):
+    import pytest
+    pytest.importorskip("cv2")
     # Stub the ORT session so no model/onnxruntime is needed.
     class FakeSess:
         def get_inputs(self):
