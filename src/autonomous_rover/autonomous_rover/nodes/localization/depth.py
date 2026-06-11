@@ -3,6 +3,23 @@ import os
 import numpy as np
 
 
+def load_depth_affine(path):
+    """(scale, shift) from a depth-affine YAML, or identity (1.0, 0.0)."""
+    if path and os.path.exists(path):
+        import yaml
+        with open(path) as f:
+            data = yaml.safe_load(f) or {}
+        return float(data.get("depth_scale", 1.0)), float(data.get("depth_shift", 0.0))
+    return 1.0, 0.0
+
+
+def save_depth_affine(path, scale, shift):
+    """Write {depth_scale, depth_shift} as YAML."""
+    import yaml
+    with open(path, "w") as f:
+        yaml.safe_dump({"depth_scale": float(scale), "depth_shift": float(shift)}, f)
+
+
 class DepthEstimator:
     """Interface: estimate(rgb) -> float32 depth image in meters (0 == no return)."""
 
@@ -99,13 +116,18 @@ def make_session(model_path, providers, provider_options=None,
 
 
 class OnnxDepthEstimator(DepthEstimator):
-    """Depth Anything V2 Metric via ONNX Runtime. estimate(bgr) -> meters @ camera res."""
+    """Depth Anything V2 Metric via ONNX Runtime. estimate(bgr) -> meters @ camera res.
 
-    def __init__(self, model_path, providers=None, provider_options=None, input_size=518):
+    Applies the calibrated affine `scale*raw + shift` (identity by default)."""
+
+    def __init__(self, model_path, providers=None, provider_options=None, input_size=518,
+                 scale=1.0, shift=0.0):
         import cv2  # lazy: only when onnx is selected
 
         self._cv2 = cv2
         self._size = int(input_size)
+        self._scale = float(scale)
+        self._shift = float(shift)
         self._sess = make_session(model_path, providers, provider_options)
         self._in = self._sess.get_inputs()[0].name
 
@@ -115,5 +137,8 @@ class OnnxDepthEstimator(DepthEstimator):
                          lambda im, s: cv2.resize(im, s, interpolation=cv2.INTER_CUBIC))
         raw = self._sess.run(None, {self._in: pre})[0]
         h, w = bgr.shape[:2]
-        return postprocess(raw, (h, w),
-                           lambda im, s: cv2.resize(im, s, interpolation=cv2.INTER_LINEAR))
+        depth = postprocess(raw, (h, w),
+                            lambda im, s: cv2.resize(im, s, interpolation=cv2.INTER_LINEAR))
+        if self._scale != 1.0 or self._shift != 0.0:
+            depth = (self._scale * depth + self._shift).astype(np.float32)
+        return depth
