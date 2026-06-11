@@ -45,3 +45,6 @@ On the Pi (QCS6490):
 
 In the devcontainer/sim, leave `depth_estimator: stub` (no model or onnxruntime
 needed), or use `onnx_providers: ["CPUExecutionProvider"]` with the fp32 model.
+
+
+
