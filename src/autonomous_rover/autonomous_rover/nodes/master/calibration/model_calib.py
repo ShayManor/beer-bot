@@ -47,3 +47,61 @@ def fit_affine(raw, true, trim_sigma=3.0):
     residual = float(np.abs(true[keep] - (a * raw[keep] + b)).mean()) if keep.any() \
         else float(np.abs(true - (a * raw + b)).mean())
     return float(a), float(b), residual
+
+
+def _probe_points(width, height):
+    """Center + 4 offsets at +/- quarter width/height (a plus pattern)."""
+    cx, cy = width // 2, height // 2
+    qx, qy = width // 4, height // 4
+    return [(cx, cy), (cx - qx, cy), (cx + qx, cy), (cx, cy - qy), (cx, cy + qy)]
+
+
+class ModelCalibSession:
+    """Accumulate (raw, true) floor pairs across capture poses, then fit affine."""
+
+    def __init__(self, estimator, K, camera_height, ransac):
+        self.estimator = estimator
+        self.K = np.asarray(K, dtype=np.float64)
+        self.h = float(camera_height)
+        self.ransac = dict(ransac)
+        self.raw, self.true = [], []
+        self.result = None
+
+    def capture(self, bgr):
+        depth = self.estimator.estimate(bgr)        # raw metric depth (no scale)
+        xyz = backproject(depth, self.K)
+        pts = valid_points(xyz)
+        fit = fit_plane(pts, **self.ransac)
+        if fit is None:
+            return {"ok": False, "reason": "no floor plane", "pairs": len(self.raw)}
+        normal, _d, inliers = fit
+        floor = pts[inliers]
+        raw_z, true_z = floor_truth(floor, normal, self.h)
+        self.raw.extend(raw_z.tolist())
+        self.true.extend(true_z.tolist())
+        return {"ok": True, "inliers": int(inliers.sum()), "pairs": len(self.raw),
+                "range": [float(raw_z.min()), float(raw_z.max())]}
+
+    def solve(self):
+        if len(self.raw) < 10:
+            raise ValueError("need more captures (>= 10 floor points)")
+        a, b, residual = fit_affine(np.array(self.raw), np.array(self.true))
+        self.result = {"a": a, "b": b, "residual": residual}
+        return self.result
+
+    def probe(self, bgr):
+        """Calibrated predicted distance at crosshair points (9x9 patch median)."""
+        if self.result is None:
+            raise ValueError("solve first")
+        depth = self.estimator.estimate(bgr)
+        a, b = self.result["a"], self.result["b"]
+        cal = a * depth + b
+        h, w = cal.shape
+        out = []
+        for u, v in _probe_points(w, h):
+            patch = cal[max(0, v - 4):v + 5, max(0, u - 4):u + 5]
+            out.append({"u": int(u), "v": int(v), "d": float(np.median(patch))})
+        return out
+
+    def reset(self):
+        self.raw, self.true, self.result = [], [], None

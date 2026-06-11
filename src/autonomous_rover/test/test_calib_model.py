@@ -45,3 +45,41 @@ def test_floor_truth_matches_geometry():
     raw_z, true_z = floor_truth(pts, normal, h)
     assert np.allclose(true_z, z, atol=1e-9)
     assert np.allclose(raw_z, pts[:, 2], atol=1e-9)
+
+
+from autonomous_rover.nodes.master.calibration.model_calib import ModelCalibSession
+from autonomous_rover.nodes.localization.depth import StubDepthEstimator
+
+
+def _K():
+    return np.array([[300., 0., 160.], [0., 300., 120.], [0., 0., 1.]])
+
+
+def test_session_capture_and_solve_on_flat_floor():
+    K = _K()
+    h, pitch = 0.19, 0.35
+    est = StubDepthEstimator(K, h, pitch)           # produces an exact metric floor
+    sess = ModelCalibSession(est, K, h,
+                             dict(threshold=0.01, iterations=200, min_inliers=50))
+    bgr = np.zeros((240, 320, 3), dtype=np.uint8)   # content ignored by the stub
+    info = sess.capture(bgr)
+    assert info["ok"] is True
+    assert info["pairs"] > 100
+    res = sess.solve()
+    # Stub floor is already metric -> affine is ~identity.
+    assert abs(res["a"] - 1.0) < 0.05
+    assert abs(res["b"]) < 0.05
+
+
+def test_session_probe_returns_distances():
+    K = _K()
+    h, pitch = 0.19, 0.35
+    est = StubDepthEstimator(K, h, pitch)
+    sess = ModelCalibSession(est, K, h, dict(threshold=0.01, iterations=200, min_inliers=50))
+    bgr = np.zeros((240, 320, 3), dtype=np.uint8)
+    sess.capture(bgr)
+    sess.solve()
+    pts = sess.probe(bgr)
+    assert len(pts) == 5
+    for q in pts:
+        assert q["d"] > 0.0 and {"u", "v", "d"} <= set(q)
