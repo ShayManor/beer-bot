@@ -5,6 +5,7 @@ localization_node:
     depth_estimator: "onnx"
     depth_model_path: "models/depth_anything_v2_metric_indoor_small_int8.onnx"
     depth_input_size: 518
+    depth_affine_file: "depth_affine.yaml"     # calibrated scale/shift; resolved vs package share
     onnx_providers: ["QNNExecutionProvider", "CPUExecutionProvider"]   # sim/CPU-only: ["CPUExecutionProvider"]
     qnn_options:                               # only applied to QNNExecutionProvider
       - "backend_path=/opt/libQnnHtp.so"       # on-device: QNN auto-detects HTP; do NOT set htp_arch/soc_model
