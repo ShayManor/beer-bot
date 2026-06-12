@@ -25,6 +25,7 @@ except ImportError:  # allow import/construction without cv_bridge
 
 from autonomous_rover.nodes.master.web import INDEX_HTML
 from autonomous_rover.nodes.master.calibration.manager import CalibrationManager
+from autonomous_rover.nodes.localization.depth import parse_qnn_options
 
 # PointField datatype -> struct format char.
 _PF_FMT = {1: "b", 2: "B", 3: "h", 4: "H", 5: "i", 6: "I", 7: "f", 8: "d"}
@@ -167,7 +168,7 @@ class MasterNode(Node):
                 depth_model_path=str(self._param("depth_model_path", "")),
                 onnx_providers=list(self._param("onnx_providers", ["CPUExecutionProvider"])),
                 depth_input_size=int(self._param("depth_input_size", 518)),
-                qnn_options={},
+                qnn_options=parse_qnn_options(list(self._param("qnn_options", []))),
                 params_dir=self._calib_params_dir(),
                 repo_dir=self.calib_repo_dir,
                 camera_calib_name="camera_calib.yaml",

@@ -8,3 +8,5 @@ master_node:
     teleop_linear: 1.25
     teleop_angular: 1.5
     calib_repo_dir: ""     # abs path to the rover's git repo root; enables calib write+push
+    # The depth-model calibration flow also reads (mirror localization.yaml on-device):
+    #   depth_model_path, onnx_providers, depth_input_size, qnn_options, camera_height_m

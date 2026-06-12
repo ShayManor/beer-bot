@@ -49,6 +49,3 @@ class CameraCalibSession:
                        "rms": float(rms), "width": self.size[0], "height": self.size[1],
                        "views": len(self.img_points)}
         return self.result
-
-    def reset(self):
-        self.obj_points, self.img_points, self.result = [], [], None

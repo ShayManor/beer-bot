@@ -102,6 +102,3 @@ class ModelCalibSession:
             patch = cal[max(0, v - 4):v + 5, max(0, u - 4):u + 5]
             out.append({"u": int(u), "v": int(v), "d": float(np.median(patch))})
         return out
-
-    def reset(self):
-        self.raw, self.true, self.result = [], [], None

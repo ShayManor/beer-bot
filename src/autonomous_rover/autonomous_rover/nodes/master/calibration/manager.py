@@ -1,6 +1,5 @@
 """Ties calibration sessions to live master frames and handles Apply (write+push)."""
 import os
-import threading
 
 import numpy as np
 
@@ -8,7 +7,6 @@ from autonomous_rover.nodes.localization.depth import (
     OnnxDepthEstimator, save_depth_affine,
 )
 from autonomous_rover.nodes.camera.calibration import save_calibration
-from autonomous_rover.nodes.master.calibration.jobs import JobRunner
 from autonomous_rover.nodes.master.calibration.gitpush import commit_and_push
 from autonomous_rover.nodes.master.calibration.camera_calib import CameraCalibSession
 from autonomous_rover.nodes.master.calibration.model_calib import ModelCalibSession
@@ -27,8 +25,6 @@ class CalibrationManager:
         self._get_frame = get_frame
         self._get_K = get_K
         self.cfg = config
-        self.jobs = JobRunner()
-        self._lock = threading.Lock()
         self.camera = None
         self.model = None
 
@@ -136,4 +132,4 @@ class CalibrationManager:
             "result": self.camera.result}
         mod = None if self.model is None else {
             "pairs": len(self.model.raw), "result": self.model.result}
-        return {"camera": cam, "model": mod, "jobs": self.jobs.snapshot()}
+        return {"camera": cam, "model": mod}
