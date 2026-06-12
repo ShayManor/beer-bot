@@ -1,4 +1,5 @@
 import math
+import os
 import struct
 import threading
 import traceback
@@ -13,11 +14,18 @@ from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped, PoseStamped, Twist
 from nav_msgs.msg import Path
-from sensor_msgs.msg import PointCloud2, CompressedImage
+from sensor_msgs.msg import PointCloud2, CompressedImage, CameraInfo, Image
 
 from flask import Flask, Response, jsonify, request
 
+try:
+    from cv_bridge import CvBridge
+except ImportError:  # allow import/construction without cv_bridge
+    CvBridge = None
+
 from autonomous_rover.nodes.master.web import INDEX_HTML
+from autonomous_rover.nodes.master.calibration.manager import CalibrationManager
+from autonomous_rover.nodes.localization.depth import parse_qnn_options
 
 # PointField datatype -> struct format char.
 _PF_FMT = {1: "b", 2: "B", 3: "h", 4: "H", 5: "i", 6: "I", 7: "f", 8: "d"}
@@ -119,6 +127,11 @@ class MasterNode(Node):
         self._cloud_frame = None
         self._debug_image = None
         self._camera_image = None
+        self._bridge = CvBridge() if CvBridge else None
+        self._raw_frame = None       # latest full-res BGR ndarray (for calibration)
+        self._caminfo_K = None       # (K ndarray, width, height)
+        self.camera_height = float(self._param("camera_height_m", 0.1905))
+        self.calib_repo_dir = str(self._param("calib_repo_dir", ""))
         self._logs = deque(maxlen=log_size)
 
         latched = QoSProfile(depth=1)
@@ -140,8 +153,28 @@ class MasterNode(Node):
             self._on_camera_image,
             1,
         )
+        self.create_subscription(Image, self._param("rgb_topic", "/camera/image_raw"),
+                                 self._on_raw_frame, 1)
+        self.create_subscription(CameraInfo,
+                                 self._param("camera_info_topic", "/camera/camera_info"),
+                                 self._on_caminfo, 1)
 
         self._publish_state()  # announce initial active (autonomous by default)
+        self._calib = CalibrationManager(
+            get_frame=self._latest_raw_frame, get_K=self._latest_K,
+            config=dict(
+                camera_height=self.camera_height,
+                ransac=dict(threshold=0.02, iterations=200, min_inliers=50),
+                depth_model_path=str(self._param("depth_model_path", "")),
+                onnx_providers=list(self._param("onnx_providers", ["CPUExecutionProvider"])),
+                depth_input_size=int(self._param("depth_input_size", 518)),
+                qnn_options=parse_qnn_options(list(self._param("qnn_options", []))),
+                params_dir=self._calib_params_dir(),
+                repo_dir=self.calib_repo_dir,
+                camera_calib_name="camera_calib.yaml",
+                depth_affine_name="depth_affine.yaml",
+            ),
+        )
         self.app = self._build_app()
         self._server_thread = None
         self.logger.info("Initialized Master Node")
@@ -186,6 +219,39 @@ class MasterNode(Node):
     def _on_camera_image(self, msg):
         with self._lock:
             self._camera_image = bytes(msg.data)
+
+    def _on_raw_frame(self, msg):
+        if self._bridge is None:
+            return
+        frame = self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        with self._lock:
+            self._raw_frame = frame
+
+    def _on_caminfo(self, msg):
+        K = np.array(msg.k, dtype=float).reshape(3, 3)
+        with self._lock:
+            self._caminfo_K = (K, int(msg.width), int(msg.height))
+
+    def _latest_raw_frame(self):
+        with self._lock:
+            return None if self._raw_frame is None else self._raw_frame.copy()
+
+    def _latest_K(self):
+        with self._lock:
+            return self._caminfo_K
+
+    def _calib_params_dir(self):
+        # Prefer the source params dir under the repo so writes are committable.
+        # Must never raise during __init__: from source the package may not be in
+        # the ament index, so fall back to "" (apply is what actually needs it).
+        if self.calib_repo_dir:
+            return os.path.join(self.calib_repo_dir, "src", "autonomous_rover",
+                                "autonomous_rover", "params")
+        try:
+            from ament_index_python.packages import get_package_share_directory
+            return os.path.join(get_package_share_directory("autonomous_rover"), "params")
+        except Exception:
+            return ""
 
     # --- commands ---------------------------------------------------------
     def _publish_state(self):
@@ -344,6 +410,70 @@ class MasterNode(Node):
                 return jsonify({"error": "v and omega must be numeric"}), 400
             self.teleop(v, omega)
             return jsonify({"v": v, "omega": omega})
+
+        def _calib_call(fn):
+            try:
+                return jsonify(fn())
+            except (ValueError, FileNotFoundError, OSError) as e:
+                return jsonify({"error": str(e)}), 400
+
+        @app.route("/calib/status", methods=["GET"])
+        def calib_status():
+            return jsonify(self._calib.status())
+
+        @app.route("/calib/camera/start", methods=["POST"])
+        def calib_camera_start():
+            b = request.get_json(silent=True) or {}
+            return _calib_call(lambda: self._calib.camera_start(
+                int(b.get("rows", 6)), int(b.get("cols", 9)),
+                float(b.get("square", 0.025)), int(b.get("views", 15))))
+
+        @app.route("/calib/camera/capture", methods=["POST"])
+        def calib_camera_capture():
+            return _calib_call(self._calib.camera_capture)
+
+        @app.route("/calib/camera/solve", methods=["POST"])
+        def calib_camera_solve():
+            return _calib_call(self._calib.camera_solve)
+
+        @app.route("/calib/camera/apply", methods=["POST"])
+        def calib_camera_apply():
+            return _calib_call(self._calib.camera_apply)
+
+        @app.route("/calib/camera/reset", methods=["POST"])
+        def calib_camera_reset():
+            return _calib_call(self._calib.camera_reset)
+
+        @app.route("/calib/camera/undistort", methods=["GET"])
+        def calib_camera_undistort():
+            try:
+                return Response(self._calib.camera_undistort_jpeg(), mimetype="image/jpeg")
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+
+        @app.route("/calib/model/start", methods=["POST"])
+        def calib_model_start():
+            return _calib_call(self._calib.model_start)
+
+        @app.route("/calib/model/capture", methods=["POST"])
+        def calib_model_capture():
+            return _calib_call(self._calib.model_capture)
+
+        @app.route("/calib/model/solve", methods=["POST"])
+        def calib_model_solve():
+            return _calib_call(self._calib.model_solve)
+
+        @app.route("/calib/model/probe", methods=["GET"])
+        def calib_model_probe():
+            return _calib_call(self._calib.model_probe)
+
+        @app.route("/calib/model/apply", methods=["POST"])
+        def calib_model_apply():
+            return _calib_call(self._calib.model_apply)
+
+        @app.route("/calib/model/reset", methods=["POST"])
+        def calib_model_reset():
+            return _calib_call(self._calib.model_reset)
 
         return app
 

@@ -53,6 +53,28 @@ body::before{ /* grain */
 
 /* ---------- header ---------- */
 header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap}
+.tabs{display:flex; gap:8px; margin-left:auto}
+.tab{font-family:var(--disp); font-weight:600; font-size:11px; letter-spacing:.2em;
+  text-transform:uppercase; padding:8px 14px; border-radius:999px; cursor:pointer;
+  color:var(--ink-dim); border:1px solid var(--line-2); background:#0c1217}
+.tab.cur{color:var(--accent); border-color:var(--accent); background:var(--accent-soft)}
+.view{display:none}
+.view.cur{display:block}
+.calgrid{display:grid; gap:var(--gap); grid-template-columns:1fr}
+@media(min-width:760px){.calgrid{grid-template-columns:1fr 1fr}}
+.steps{margin:0 0 12px; padding-left:18px; font-size:12px; color:var(--ink-dim); line-height:1.7}
+.calbtns{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0}
+.calbtns button{font-family:var(--mono); font-size:12px; padding:8px 12px; border-radius:9px;
+  border:1px solid var(--line-2); background:#0c1217; color:var(--ink); cursor:pointer}
+.calbtns button:hover{border-color:var(--accent)}
+.calread{font-size:12px; color:var(--ink-dim); font-variant-numeric:tabular-nums; line-height:1.8}
+.calread b{color:var(--ink)}
+.calframe{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:10px;
+  border:1px solid var(--line); background:#080c0f}
+.banner{margin-top:10px; font-size:12px; padding:9px 11px; border-radius:9px;
+  border:1px solid var(--line-2); color:var(--ink-dim)}
+.banner.ok{border-color:var(--live); color:var(--live)}
+.banner.err{border-color:var(--stop); color:var(--stop)}
 .brand{display:flex; align-items:baseline; gap:12px; min-width:0}
 .kicker{font-size:10px; letter-spacing:.42em; color:var(--ink-dim); text-transform:uppercase}
 .logo{font-family:var(--disp); font-weight:700; font-size:26px; letter-spacing:.02em; line-height:1;
@@ -167,10 +189,15 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
     <div class="hud">
       <span class="link" id="link"><span class="dot"></span><span id="linkTxt">linking…</span></span>
       <span class="badge" id="badge">—</span>
+      <nav class="tabs">
+        <span class="tab cur" data-view="mission">Mission</span>
+        <span class="tab" data-view="calibration">Calibration</span>
+      </nav>
     </div>
   </header>
 
-  <div class="grid">
+  <div class="view cur" id="mission">
+    <div class="grid">
     <section class="card cam">
       <h2>Camera</h2>
       <img id="cam" class="off" alt="camera preview">
@@ -223,6 +250,65 @@ body.live .badge{animation:pulse 1.8s ease-in-out infinite}
       <h2>Log Stream</h2>
       <div class="feed" id="feed"><div class="empty">awaiting telemetry…</div></div>
     </section>
+    </div>
+  </div>
+
+  <div class="view" id="calibration">
+    <div class="calgrid">
+      <section class="card">
+        <h2>Camera Intrinsics</h2>
+        <img id="calCamFrame" class="calframe" alt="camera frame">
+        <ol class="steps">
+          <li>Print a flat checkerboard; measure one square's side in metres.</li>
+          <li>Set rows/cols (inner corners) + square below.</li>
+          <li>Hold the board at varied angles and distances; cover the frame
+              edges and corners. Press <b>Capture</b> on each good view.</li>
+          <li>After the target views, press <b>Solve</b>, then <b>Verify</b> to
+              eyeball the undistorted frame. <b>Apply</b> writes + pushes;
+              restart <b>camera_node</b> to load it.</li>
+        </ol>
+        <div class="calbtns">
+          <span>rows <input id="calRows" type="number" value="6" style="width:46px"></span>
+          <span>cols <input id="calCols" type="number" value="9" style="width:46px"></span>
+          <span>sq(m) <input id="calSq" type="number" step="0.001" value="0.025" style="width:64px"></span>
+        </div>
+        <div class="calbtns">
+          <button data-act="cam-start">Start</button>
+          <button data-act="cam-capture">Capture</button>
+          <button data-act="cam-solve">Solve</button>
+          <button data-act="cam-verify">Verify</button>
+          <button data-act="cam-apply">Apply</button>
+          <button data-act="cam-reset">Reset</button>
+        </div>
+        <div class="calread" id="calCamRead">views — · rms —</div>
+        <div class="banner" id="calCamBanner" style="display:none"></div>
+      </section>
+
+      <section class="card">
+        <h2>Depth Model (metric)</h2>
+        <img id="calModFrame" class="calframe" alt="depth probe">
+        <ol class="steps">
+          <li><b>Stop localization_node first</b> (it shares the depth model on the NPU).</li>
+          <li>Point the camera at clear floor. Drive to several spots so the
+              floor fills different ranges. Press <b>Capture</b> at each.</li>
+          <li>Press <b>Solve</b> to fit the affine. Press <b>Verify</b> to read
+              predicted distances at the crosshairs — tape-measure camera→floor
+              to check.</li>
+          <li><b>Apply</b> writes + pushes <code>depth_affine.yaml</code>;
+              restart <b>localization_node</b> to load it.</li>
+        </ol>
+        <div class="calbtns">
+          <button data-act="mod-start">Start</button>
+          <button data-act="mod-capture">Capture</button>
+          <button data-act="mod-solve">Solve</button>
+          <button data-act="mod-verify">Verify</button>
+          <button data-act="mod-apply">Apply</button>
+          <button data-act="mod-reset">Reset</button>
+        </div>
+        <div class="calread" id="calModRead">pairs — · a — · b — · res —</div>
+        <div class="banner" id="calModBanner" style="display:none"></div>
+      </section>
+    </div>
   </div>
 </div>
 
@@ -299,6 +385,64 @@ function applyState(s){
 document.querySelectorAll('.snode').forEach(n=>{
   n.addEventListener('click',()=>{ const s=n.dataset.s; applyState(s); j('/state',{state:s}).catch(()=>{}); });
 });
+
+/* ---- tabs ---- */
+let calCamFrozen=false;
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  const v=t.dataset.view;
+  calCamFrozen=false;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('cur',x===t));
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('cur',x.id===v));
+}));
+
+/* ---- calibration ---- */
+function banner(id,msg,ok){const el=$('#'+id); el.style.display=''; el.textContent=msg;
+  el.classList.toggle('ok',ok===true); el.classList.toggle('err',ok===false);}
+async function calPost(path,body){const r=await j(path,body||{}); return r.json().then(b=>({s:r.status,b}));}
+const CAL={
+  'cam-start':async()=>{calCamFrozen=false;
+    const {s,b}=await calPost('/calib/camera/start',
+      {rows:+$('#calRows').value,cols:+$('#calCols').value,square:+$('#calSq').value,views:15});
+    banner('calCamBanner', s===200?'started — capture board views':b.error, s===200);},
+  'cam-capture':async()=>{calCamFrozen=false; const {b}=await calPost('/calib/camera/capture');
+    if(b.found){$('#calCamRead').innerHTML='views <b>'+b.views+'</b> · rms —';
+      banner('calCamBanner','view '+b.views+' captured',true);}
+    else banner('calCamBanner','board not found',false);},
+  'cam-solve':async()=>{const {b,s}=await calPost('/calib/camera/solve');
+    if(s!==200){banner('calCamBanner',b.error,false);return;}
+    $('#calCamRead').innerHTML='views <b>'+b.views+'</b> · rms <b>'+b.rms.toFixed(3)+'</b> px';
+    banner('calCamBanner','solved — Verify or Apply',true);},
+  'cam-verify':async()=>{calCamFrozen=true; const img=$('#calCamFrame');
+    img.onload=()=>{img.onload=img.onerror=null; banner('calCamBanner','undistorted preview — straight lines = good',true);};
+    img.onerror=()=>{img.onload=img.onerror=null; calCamFrozen=false; banner('calCamBanner','solve the camera calibration first',false);};
+    img.src='/calib/camera/undistort?t='+Date.now();},
+  'cam-apply':async()=>{const {b,s}=await calPost('/calib/camera/apply');
+    banner('calCamBanner', s!==200?b.error:(b.pushed?'applied + pushed':'applied (push failed: '+b.push_output+')'), s===200&&b.pushed);},
+  'cam-reset':async()=>{calCamFrozen=false; await calPost('/calib/camera/reset'); $('#calCamRead').textContent='views — · rms —'; banner('calCamBanner','reset',true);},
+  'mod-start':async()=>{const {b,s}=await calPost('/calib/model/start');
+    banner('calModBanner', s!==200?b.error:'started — capture floor views', s===200);},
+  'mod-capture':async()=>{const {b}=await calPost('/calib/model/capture');
+    if(b.ok===false){banner('calModBanner',b.reason||'no floor',false);return;}
+    $('#calModRead').innerHTML='pairs <b>'+b.pairs+'</b> · last inliers <b>'+b.inliers+'</b>';
+    banner('calModBanner','captured ('+b.range[0].toFixed(2)+'–'+b.range[1].toFixed(2)+' m)',true);},
+  'mod-solve':async()=>{const {b,s}=await calPost('/calib/model/solve');
+    if(s!==200){banner('calModBanner',b.error,false);return;}
+    $('#calModRead').innerHTML='a <b>'+b.a.toFixed(4)+'</b> · b <b>'+b.b.toFixed(4)+'</b> · res <b>'+b.residual.toFixed(4)+'</b>';
+    banner('calModBanner','solved — Verify or Apply',true);},
+  'mod-verify':async()=>{const r=await api('/calib/model/probe'); const b=await r.json();
+    if(r.status!==200){banner('calModBanner',b.error,false);return;}
+    banner('calModBanner','probe (m): '+b.points.map(p=>p.d.toFixed(2)).join(' · ')+' — tape-measure to check',true);},
+  'mod-apply':async()=>{const {b,s}=await calPost('/calib/model/apply');
+    banner('calModBanner', s!==200?b.error:(b.pushed?'applied + pushed':'applied (push failed: '+b.push_output+')'), s===200&&b.pushed);},
+  'mod-reset':async()=>{await calPost('/calib/model/reset'); $('#calModRead').textContent='pairs — · a — · b — · res —'; banner('calModBanner','reset',true);},
+};
+document.querySelectorAll('[data-act]').forEach(btn=>btn.addEventListener('click',
+  ()=>{const fn=CAL[btn.dataset.act]; if(fn) fn().catch(e=>banner(btn.dataset.act.startsWith('cam')?'calCamBanner':'calModBanner','error: '+e,false));}));
+/* live camera frame in both calibration cards (camera card freezes during undistort preview) */
+setInterval(()=>{ if($('#calibration').classList.contains('cur')){
+  if(!calCamFrozen) $('#calCamFrame').src='/camera_image?t='+Date.now();
+  $('#calModFrame').src='/camera_image?t='+Date.now();
+}},1500);
 
 /* ---- telemetry poll ---- */
 const fmt=(x,d=2)=> (x===null||x===undefined)?'—':(+x).toFixed(d);

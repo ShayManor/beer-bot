@@ -13,7 +13,7 @@ from nav_msgs.msg import Odometry
 
 from ament_index_python.packages import get_package_share_directory
 from autonomous_rover.nodes.localization.depth import (
-    StubDepthEstimator, OnnxDepthEstimator, parse_qnn_options,
+    StubDepthEstimator, OnnxDepthEstimator, parse_qnn_options, load_depth_affine,
 )
 from autonomous_rover.nodes.localization.projection import backproject, valid_points
 from autonomous_rover.nodes.localization.ground_plane import ground_scale
@@ -62,6 +62,8 @@ class LocalizationNode(Node):
         self.onnx_providers = list(self._param("onnx_providers", ["CPUExecutionProvider"]))
         self.depth_input_size = int(self._param("depth_input_size", 518))
         self.qnn_options = parse_qnn_options(list(self._param("qnn_options", [])))
+        affine_path = self._resolve_model_path(str(self._param("depth_affine_file", "")))
+        self.depth_scale, self.depth_shift = load_depth_affine(affine_path)
 
         self._bridge = CvBridge() if CvBridge else None
         self._estimator = self._build_estimator(None) if self.depth_estimator == "onnx" else None
@@ -107,7 +109,8 @@ class LocalizationNode(Node):
             popts = [self.qnn_options if p == "QNNExecutionProvider" else {}
                      for p in self.onnx_providers]
             return OnnxDepthEstimator(self.model_path, self.onnx_providers, popts,
-                                      self.depth_input_size)
+                                      self.depth_input_size,
+                                      scale=self.depth_scale, shift=self.depth_shift)
         raise ValueError(f"unknown depth_estimator {self.depth_estimator!r}")
 
     def _on_odom(self, msg):

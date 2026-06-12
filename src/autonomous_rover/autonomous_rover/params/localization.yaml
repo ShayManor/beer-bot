@@ -7,6 +7,7 @@ localization_node:
     # the QCS6490 HTP (vs 914 ms fragmented / 1420 ms CPU). Absolute path on-device.
     depth_model_path: "/home/evc/autonomous-rover/models/depth_anything_v2_metric_indoor_small_gelu_int8_252.onnx"
     depth_input_size: 252                       # must match the model's fixed input size
+    depth_affine_file: "depth_affine.yaml"     # calibrated scale/shift; resolved vs package share
     onnx_providers: ["QNNExecutionProvider", "CPUExecutionProvider"]   # sim/CPU-only: ["CPUExecutionProvider"]
     qnn_options:                               # only applied to QNNExecutionProvider
       # QAIRT 2.35.0 libQnnHtp.so (matches the onnxruntime-qnn 1.23 wheel). Its companion

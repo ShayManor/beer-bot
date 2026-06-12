@@ -44,3 +44,16 @@ def test_onnx_estimator_missing_model_hard_fails(ros_ctx):
     with ros_ctx(params):
         with pytest.raises(FileNotFoundError):
             LocalizationNode()
+
+
+def test_loads_depth_affine(ros_ctx, tmp_path):
+    import yaml
+    from autonomous_rover.nodes.localization.localization_node import LocalizationNode
+
+    p = tmp_path / "depth_affine.yaml"
+    p.write_text(yaml.safe_dump({"depth_scale": 1.7, "depth_shift": -0.2}))
+    with ros_ctx({"depth_affine_file": str(p)}):
+        node = LocalizationNode()
+        assert abs(node.depth_scale - 1.7) < 1e-9
+        assert abs(node.depth_shift + 0.2) < 1e-9
+        node.destroy_node()

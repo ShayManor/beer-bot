@@ -14,6 +14,7 @@ setup(
         'autonomous_rover.nodes.localization',
         'autonomous_rover.nodes.e_comms',
         'autonomous_rover.nodes.master',
+        'autonomous_rover.nodes.master.calibration',
     ],
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
