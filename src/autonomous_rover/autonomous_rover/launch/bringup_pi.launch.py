@@ -1,6 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.substitutions import Command, LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration, EnvironmentVariable
 from launch_ros.actions import Node, SetParameter, SetParametersFromFile
 from launch_ros.parameter_descriptions import ParameterValue
 from ament_index_python.packages import get_package_share_directory
@@ -58,6 +58,16 @@ def generate_launch_description():
                         executable="localization_node",
                         name="localization_node",
                         parameters=[localization_yaml],
+                        # The QNN HTP backend needs the DSP skel/shell search path and the
+                        # QAIRT companion libs on the loader path; without these the depth
+                        # net silently falls back to CPU (~40x slower). Device-specific.
+                        additional_env={
+                            "ADSP_LIBRARY_PATH": "/usr/lib/rfsa/adsp",
+                            "LD_LIBRARY_PATH": [
+                                EnvironmentVariable("LD_LIBRARY_PATH", default_value=""),
+                                ":/home/evc/qairt/2.35.0.250530/lib/aarch64-ubuntu-gcc9.4",
+                            ],
+                        },
                     ),
                     Node(
                         package="rtabmap_odom",

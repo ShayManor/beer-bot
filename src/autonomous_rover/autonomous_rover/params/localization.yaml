@@ -3,14 +3,17 @@ localization_node:
     camera_height_m: 0.1905      # 7.5 inches, fixed camera mount height
     camera_pitch_rad: 0.0
     depth_estimator: "onnx"
-    depth_model_path: "models/depth_anything_v2_metric_indoor_small_int8.onnx"
-    depth_input_size: 518
+    # Single-partition NPU model: GELU-fused + onnxsim-cleaned, 252x252 -> 33 ms/frame on
+    # the QCS6490 HTP (vs 914 ms fragmented / 1420 ms CPU). Absolute path on-device.
+    depth_model_path: "/home/evc/autonomous-rover/models/depth_anything_v2_metric_indoor_small_gelu_int8_252.onnx"
+    depth_input_size: 252                       # must match the model's fixed input size
     onnx_providers: ["QNNExecutionProvider", "CPUExecutionProvider"]   # sim/CPU-only: ["CPUExecutionProvider"]
     qnn_options:                               # only applied to QNNExecutionProvider
-      - "backend_path=/opt/libQnnHtp.so"       # on-device: QNN auto-detects HTP; do NOT set htp_arch/soc_model
+      # QAIRT 2.35.0 libQnnHtp.so (matches the onnxruntime-qnn 1.23 wheel). Its companion
+      # libs + the DSP skel are reached via LD_LIBRARY_PATH/ADSP_LIBRARY_PATH set in the launch.
+      - "backend_path=/home/evc/qairt/2.35.0.250530/lib/aarch64-ubuntu-gcc9.4/libQnnHtp.so"
       - "htp_performance_mode=burst"
       - "htp_graph_finalization_optimization_mode=3"
-      - "enable_htp_fp16_precision=1"
     ransac_threshold: 0.02
     ransac_iterations: 200
     min_inliers: 50
